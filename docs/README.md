@@ -6,3 +6,5 @@
 | `design/` | 아키텍처 설계서, 클래스 다이어그램, ERD | 전지호 |
 | `ai_usage_log.md` | 개발 중 생성형 AI 활용 로그 | 정회성 (전원 기록) |
 | `verification/` | AI 검증 데이터와 검증 보고서 | 정회성 |
+| `ai_api_selection.md` | 생성형 AI API 선정 기준·키 발급 가이드 | 정회성 |
+| `git_guide.md` | 팀 Git 사용 가이드 | 정회성 |
