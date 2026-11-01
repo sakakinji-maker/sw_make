@@ -63,7 +63,7 @@ class SmsStrategy {
   +guide() str
 }
 
-class StrategyRegistry {
+class StrategyRegistry <<module>> {
   +register(strategy_class)
   +get_strategy(channel) ChannelStrategy
   +available_channels() list
@@ -121,7 +121,7 @@ MarketingService --> ChannelStrategy : 전략 선택
 ChannelStrategy <|-- InstagramStrategy
 ChannelStrategy <|-- BlogStrategy
 ChannelStrategy <|-- SmsStrategy
-StrategyRegistry ..> ChannelStrategy : 등록·조회
+StrategyRegistry ..> ChannelStrategy : 모듈 함수로 등록·조회
 MarketingService ..> AIClient : 인터페이스 의존
 MarketingService ..> MarketingContentRepository : 저장·조회
 DashboardService ..> ReservationRepository : 조회
@@ -139,6 +139,7 @@ Store "1" o-- "0..*" MarketingContent : 집합
 - 빈 삼각형: 상속.
 - 빈 마름모: 집합(전체 객체와 부분 객체의 생명주기가 독립).
 - `AIClient`는 인터페이스이며 실제 구현체(Mock 또는 외부 API Adapter)는 런타임 설정에 따라 연결한다.
+- `StrategyRegistry`는 실제 Python 클래스가 아니라 `strategies.py` 모듈의 전역 레지스트리와 `register()`, `get_strategy()`, `available_channels()` 함수를 나타낸다.
 
 ## 3. 주요 클래스 책임 및 구현 상태
 
