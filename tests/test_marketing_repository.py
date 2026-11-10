@@ -1,5 +1,7 @@
 """홍보 문구 저장·목록 조회 Repository 테스트 (F-04-3)."""
 
+from datetime import time
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -24,8 +26,8 @@ def test_save_and_list_marketing_contents():
         category="카페",
         address="서울",
         phone="02-000-0000",
-        open_time=__import__("datetime").time(9, 0),
-        close_time=__import__("datetime").time(21, 0),
+        open_time=time(9, 0),
+        close_time=time(21, 0),
     )
     session.add(store)
     session.commit()
