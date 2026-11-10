@@ -1,8 +1,6 @@
 """홍보 문구 생성 및 저장. (F-04)"""
 
-import json
 from dataclasses import dataclass
-from datetime import datetime
 
 from sqlalchemy.orm import Session
 
