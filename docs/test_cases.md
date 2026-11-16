@@ -24,11 +24,13 @@
 
 | TC ID | 기능 ID | 구분 | 입력·조건 | 기대 결과 | 자동화 | 결과 |
 | --- | --- | --- | --- | --- | --- | --- |
-| TC-01-01 | F-01-1 | 정상 | 매장명·영업시간·휴무일 입력 후 저장 | 저장되고 조회 화면에 반영 | | ⬜ |
-| TC-01-02 | F-01-1 | 예외 | 종료 시각이 시작 시각보다 이름 (21:00~09:00) | 저장 거부, 오류 메시지 | | ⬜ |
-| TC-01-03 | F-01-2 | 정상 | 메뉴 등록 (이름, 가격 4500) | 메뉴 목록에 추가 | | ⬜ |
-| TC-01-04 | F-01-2 | 예외 | 가격 -1000 또는 문자 입력 | 저장 거부, 오류 메시지 | | ⬜ |
-| TC-01-05 | F-01-3 | 정상 | FAQ 질문·답변 등록 | FAQ 목록에 추가 | | ⬜ |
+| TC-01-01 | F-01-1 | 정상 | 매장명·영업시간·휴무일 입력 후 저장 | 저장되고 조회 화면에 반영 | `tests/test_store.py::TestStoreInfo::test_update_store`, `::TestStoreInfo::test_get_store` | ✅ |
+| TC-01-02 | F-01-1 | 예외 | 종료 시각이 시작 시각보다 이름 (21:00~09:00) | 저장 거부, 오류 메시지 | **검사 코드 없음 (11/16 취합 시 확인, 한재형 구현 필요)** | ⬜ |
+| TC-01-03 | F-01-2 | 정상 | 메뉴 등록 (이름, 가격 4500) | 메뉴 목록에 추가 | `tests/test_store.py::TestMenu::test_add_and_list`, `::TestMenu::test_update_menu`, `::TestMenu::test_delete_menu` | ✅ |
+| TC-01-04 | F-01-2 | 예외 | 가격 -1000 또는 문자 입력 | 저장 거부, 오류 메시지 | `tests/test_store.py::TestMenu::test_negative_price_rejected` (음수만, 문자 입력은 미작성) | ✅ |
+| TC-01-05 | F-01-3 | 정상 | FAQ 질문·답변 등록 | FAQ 목록에 추가 | `tests/test_store.py::TestFAQ::test_add_and_list`, `::TestFAQ::test_update_faq`, `::TestFAQ::test_delete_faq` | ✅ |
+| TC-01-06 | F-01-1 | 예외 | 없는 매장 번호 조회 | 404 | `tests/test_store.py::TestStoreInfo::test_get_store_not_found` | ✅ |
+| TC-01-07 | F-01-3 | 예외 | 다른 매장의 FAQ를 수정·삭제 | 거부 | `tests/test_store.py::TestFAQ::test_faq_wrong_store` | ✅ |
 
 ## F-02 예약·고객 관리 (정회성, WBS v2)
 
@@ -84,6 +86,11 @@
 | TC-03-22 | F-03-4 | 예외 | 점주가 고친 최종 답변에 틀린 정보 | 저장 후 화면에 경고 | `tests/test_inquiry_flow.py::test_check_answer_flags_owner_mistake`, `::test_owner_answered_shows_warning_for_wrong_final` | ✅ |
 | TC-03-23 | F-03-5 | 정상 | AI 실패 후 점주가 직접 작성해 발송 완료 | 상태 "답변완료", AI 원본 없음 | `tests/test_inquiry_flow.py::test_finalize_without_ai_draft`, `::test_owner_ai_failure_then_write_directly` | ✅ |
 | TC-03-24 | F-03-4 | 정상 | 상세 화면 입력칸 | AI 초안이 미리 채워짐, 복사 버튼 표시 | `tests/test_inquiry_flow.py::test_owner_detail_prefills_ai_draft` | ✅ |
+| TC-03-25 | F-03-3 | 예외 | 다른 메뉴의 가격을 말함 ("밤라떼 6,500원", 6,500원은 치즈케이크 가격) | 메뉴별 가격 불일치 경고 | `tests/test_fact_checker.py::test_other_menu_price_detected` | ✅ |
+| TC-03-26 | F-03-3 | 정상 | 메뉴 나열 ("A와 B는 각각 4,500원, 6,000원") | 오탐 없음 | `tests/test_fact_checker.py::test_listed_menus_with_respective_prices_pass`, `::test_price_without_menu_name_uses_all_prices` | ✅ |
+| TC-03-27 | F-03-3 | 예외 | 한글 시각 표기 ("저녁 10시") | 시각 불일치 경고, "1시간"은 무시 | `tests/test_fact_checker.py::test_korean_time_expression`, `::test_hours_duration_is_not_time` | ✅ |
+| TC-03-28 | F-03-3 | 정상·예외 | "월요일을 제외하고 매일 영업" / "화요일 빼고 매일 영업" | 휴무일과 같으면 통과, 다르면 경고 | `tests/test_fact_checker.py::test_except_closed_day_sentence` | ✅ |
+| TC-03-29 | 검증 | 정상 | 오류 삽입 초안 10건 + 정상 초안 10건 (기획서 12절) | 탐지율 100%, 오탐률 0% | `tests/test_verification.py::test_injection_experiment_detects_all_and_no_false_positive` | ✅ |
 
 ### AI Adapter (정회성)
 
@@ -105,7 +112,9 @@
 | TC-04-03 | F-04-2 | 예외 | 문자(SMS)에 해시태그 포함 | 해시태그 위반 표시 | `tests/test_marketing_strategies.py::test_sms_rejects_hashtags` | ✅ |
 | TC-04-04 | F-04-1 | 예외 | 없는 채널 "tiktok" | `ValueError` | `tests/test_marketing_strategies.py::test_unknown_channel` | ✅ |
 | TC-04-05 | F-04-1 | 예외 | AI 호출 실패 | 문구 없음 + 오류 안내 | `tests/test_marketing_strategies.py::test_service_handles_ai_failure` | ✅ |
-| TC-04-06 | F-04-3 | 정상 | 생성 문구 저장 후 채널별 목록 조회 | 저장한 문구가 목록에 표시 | | ⬜ |
+| TC-04-06 | F-04-3 | 정상 | 생성 문구 저장 후 채널별 목록 조회 | 저장한 문구가 목록에 표시 | `tests/test_marketing_repository.py::test_save_and_list_marketing_content`, `::test_list_marketing_contents_limit` | ✅ |
+| TC-04-07 | F-04-2 | 예외 | 문구에 틀린 가격·시각, 없는 메뉴 이름 | 사실 불일치 표시 | `tests/test_marketing_service_facts.py::test_marketing_service_checks_price_and_time`, `::test_marketing_service_detects_unregistered_menu` | ✅ |
+| TC-04-08 | F-04-2 | 정상 | 등록된 가격·시각만 쓴 문구 | 사실 불일치 0건 | `tests/test_marketing_service_facts.py::test_marketing_service_accepts_registered_price_and_time` | ✅ |
 
 ## F-05 대시보드 (전지호)
 
@@ -127,4 +136,13 @@
 
 ---
 
-**현황 (11/10)**: 자동화 ✅ 37건 / 미작성 ⬜ 15건. 미작성 행은 12~13주차에 각 담당자가 구현하면서 채웁니다.
+**현황 (11/16, 정회성 취합)**: 자동화 ✅ 76건 / 미작성 ⬜ 3건. `pytest` 165 passed.
+
+### 13주차 취합 결과: 남은 항목
+
+| 기능 | 빠진 것 | 담당 |
+| --- | --- | --- |
+| F-01-1 | 영업시간 역전(종료 ≤ 시작) 저장 거부. 검사 코드 자체가 없음 (TC-01-02) | 한재형 |
+| F-01-2 | 가격에 문자 입력 시 거부 테스트 (TC-01-04 일부) | 한재형 |
+| F-05-1 | 대시보드가 아직 빈 목록을 고정으로 보여줌. 실제 예약·미응답 문의 연결과 TC-05-02·03 | 전지호 |
+| F-05-2 | 테스트 케이스 행 없음 | 전지호 |

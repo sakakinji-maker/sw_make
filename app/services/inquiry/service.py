@@ -96,7 +96,7 @@ class InquiryService:
             return DraftResult(draft=None, mismatches=[], error=f"AI 초안 생성 실패: {e}")
 
         checker = self._checker(store, menus)
-        return DraftResult(draft=draft, mismatches=checker.check(draft))
+        return DraftResult(draft=draft, mismatches=checker.check(draft, quoted=inquiry.content))
 
     # ----- F-03-4 점주 확정(발송 완료), F-03-5 직접 작성 -----
     # AI-assisted (Claude) — 정회성 검토 완료
@@ -116,7 +116,7 @@ class InquiryService:
     def check_answer(self, inquiry: Inquiry, text: str) -> list[Mismatch]:
         """점주가 고친 최종 답변도 같은 기준으로 DB와 대조한다. (발송 전 마지막 확인)"""
         store = inquiry.store
-        return self._checker(store, store.menu_items).check(text)
+        return self._checker(store, store.menu_items).check(text, quoted=inquiry.content)
 
     @staticmethod
     def _checker(store: Store, menus: list[MenuItem]) -> FactChecker:

@@ -1,0 +1,200 @@
+[
+  {
+    "id": "Q01",
+    "before": [],
+    "after": []
+  },
+  {
+    "id": "Q02",
+    "before": [],
+    "after": []
+  },
+  {
+    "id": "Q03",
+    "before": [
+      {
+        "kind": "가격",
+        "found": "8,300원",
+        "message": "메뉴에 등록된 가격과 일치하지 않습니다"
+      }
+    ],
+    "after": []
+  },
+  {
+    "id": "Q04",
+    "before": [],
+    "after": []
+  },
+  {
+    "id": "Q05",
+    "before": [],
+    "after": []
+  },
+  {
+    "id": "Q06",
+    "before": [],
+    "after": []
+  },
+  {
+    "id": "Q07",
+    "before": [],
+    "after": []
+  },
+  {
+    "id": "Q08",
+    "before": [],
+    "after": []
+  },
+  {
+    "id": "Q09",
+    "before": [],
+    "after": []
+  },
+  {
+    "id": "Q10",
+    "before": [
+      {
+        "kind": "시각",
+        "found": "저녁 8시 반",
+        "message": "등록된 영업 시작·종료 시각과 다릅니다"
+      }
+    ],
+    "after": []
+  },
+  {
+    "id": "Q11",
+    "before": [],
+    "after": []
+  },
+  {
+    "id": "Q12",
+    "before": [],
+    "after": []
+  },
+  {
+    "id": "Q13",
+    "before": [],
+    "after": []
+  },
+  {
+    "id": "Q14",
+    "before": [],
+    "after": []
+  },
+  {
+    "id": "Q15",
+    "before": [],
+    "after": []
+  },
+  {
+    "id": "Q16",
+    "before": [],
+    "after": []
+  },
+  {
+    "id": "Q17",
+    "before": [],
+    "after": []
+  },
+  {
+    "id": "Q18",
+    "before": [],
+    "after": []
+  },
+  {
+    "id": "Q19",
+    "before": [],
+    "after": []
+  },
+  {
+    "id": "Q20",
+    "before": [
+      {
+        "kind": "가격",
+        "found": "65,000원",
+        "message": "클리닉의 등록 가격은 40,000원입니다"
+      }
+    ],
+    "after": []
+  },
+  {
+    "id": "Q21",
+    "before": [],
+    "after": []
+  },
+  {
+    "id": "Q22",
+    "before": [],
+    "after": []
+  },
+  {
+    "id": "Q23",
+    "before": [
+      {
+        "kind": "시각",
+        "found": "저녁 7시 반",
+        "message": "등록된 영업 시작·종료 시각과 다릅니다"
+      }
+    ],
+    "after": []
+  },
+  {
+    "id": "Q24",
+    "before": [
+      {
+        "kind": "휴무일",
+        "found": "일요일",
+        "message": "휴무일이 아닙니다 (등록된 휴무일: 화)"
+      }
+    ],
+    "after": [
+      {
+        "kind": "휴무일",
+        "found": "일요일",
+        "message": "휴무일이 아닙니다 (등록된 휴무일: 화)"
+      }
+    ]
+  },
+  {
+    "id": "Q25",
+    "before": [
+      {
+        "kind": "시각",
+        "found": "15:00",
+        "message": "등록된 영업 시작·종료 시각과 다릅니다"
+      }
+    ],
+    "after": [
+      {
+        "kind": "시각",
+        "found": "15:00",
+        "message": "등록된 영업 시작·종료 시각과 다릅니다"
+      }
+    ]
+  },
+  {
+    "id": "Q26",
+    "before": [],
+    "after": []
+  },
+  {
+    "id": "Q27",
+    "before": [],
+    "after": []
+  },
+  {
+    "id": "Q28",
+    "before": [],
+    "after": []
+  },
+  {
+    "id": "Q29",
+    "before": [],
+    "after": []
+  },
+  {
+    "id": "Q30",
+    "before": [],
+    "after": []
+  }
+]
