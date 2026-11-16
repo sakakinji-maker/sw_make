@@ -69,13 +69,21 @@
 | TC-03-07 | F-03-5 | 예외 | AI 호출 실패 | 초안 없음 + 오류 안내 | `tests/test_inquiry_service.py::test_ai_failure_returns_error` | ✅ |
 | TC-03-08 | F-03-1 | 정상 | 고객이 이름·연락처·내용으로 문의 등록 | "미응답"으로 저장 | `tests/test_inquiry_flow.py::test_register_creates_unanswered_inquiry`, `::test_customer_submit_success` | ✅ |
 | TC-03-09 | F-03-1 | 예외 | 내용이 비었거나 1,000자 초과, 연락처 형식 오류, 이름 누락 | 등록 거부, 한국어 오류 메시지, 입력값 유지 | `tests/test_inquiry_flow.py::test_invalid_input_has_korean_message`, `::test_customer_submit_invalid_shows_errors_and_keeps_input` | ✅ |
-| TC-03-10 | F-03-4 | 정상 | 초안 수정 후 발송 완료 | 상태 "답변완료", AI 원본과 최종 답변 모두 저장 | | ⬜ |
+| TC-03-10 | F-03-4 | 정상 | 초안 수정 후 발송 완료 | 상태 "답변완료", AI 원본과 최종 답변 모두 저장 | `tests/test_inquiry_flow.py::test_finalize_saves_answer_and_keeps_ai_draft`, `::test_owner_submit_answer_marks_answered` | ✅ |
 | TC-03-11 | F-03-1 | 정상 | 같은 연락처로 두 번 문의 | 같은 고객으로 묶임 | `tests/test_inquiry_flow.py::test_register_reuses_customer_by_phone` | ✅ |
 | TC-03-12 | F-03-1 | 예외 | 없는 매장 id로 문의 | `StoreNotFoundError` | `tests/test_inquiry_flow.py::test_register_unknown_store` | ✅ |
 | TC-03-13 | F-03-2 | 정상 | 점주가 AI 초안 생성 | AI 원본 초안과 대조 결과가 저장되고, 상태는 "미응답" 유지 | `tests/test_inquiry_flow.py::test_generate_draft_saves_ai_draft_and_check` | ✅ |
 | TC-03-14 | F-03-3 | 예외 | 초안에 틀린 가격·시각 | 대조 결과에 가격·시각 불일치 저장, 화면에 경고 | `tests/test_inquiry_flow.py::test_generate_draft_records_mismatch`, `::test_owner_generate_draft_shows_warning` | ✅ |
 | TC-03-15 | F-03-5 | 예외 | 점주 화면에서 AI 실패 | 초안 저장 안 함, "직접 답변을 작성" 안내 | `tests/test_inquiry_flow.py::test_generate_draft_ai_failure_keeps_inquiry`, `::test_owner_draft_ai_failure_message` | ✅ |
 | TC-03-16 | F-03-2 | 예외 | 없는 문의 번호 | 404 | `tests/test_inquiry_flow.py::test_owner_detail_404`, `::test_generate_draft_unknown_inquiry` | ✅ |
+| TC-03-17 | F-03-3 | 정상 | 초안의 휴무일이 DB와 같음 ("월요일은 휴무") | 불일치 0건 | `tests/test_fact_checker.py::test_correct_closed_day_passes` | ✅ |
+| TC-03-18 | F-03-3 | 예외 | 초안에 틀린 휴무일, 휴무일 영업 안내, "연중무휴" | 휴무일 불일치 경고 | `tests/test_fact_checker.py::test_wrong_closed_day_detected`, `::test_open_on_closed_day_detected`, `::test_no_holiday_claim_detected`, `tests/test_inquiry_flow.py::test_generate_draft_detects_wrong_closed_day` | ✅ |
+| TC-03-19 | F-03-3 | 정상 | 휴무·영업 단서 없이 요일만 언급 | 오탐 없음 | `tests/test_fact_checker.py::test_weekday_without_context_is_ignored` | ✅ |
+| TC-03-20 | F-03-4 | 예외 | 빈 답변 또는 2,000자 초과로 발송 완료 | 저장 거부, 한국어 오류, 상태 "미응답" 유지 | `tests/test_inquiry_flow.py::test_invalid_answer_has_korean_message`, `::test_owner_submit_empty_answer_rejected` | ✅ |
+| TC-03-21 | F-03-4 | 예외 | 없는 문의 번호로 발송 완료 | 404 / `InquiryNotFoundError` | `tests/test_inquiry_flow.py::test_owner_submit_answer_404`, `::test_finalize_unknown_inquiry` | ✅ |
+| TC-03-22 | F-03-4 | 예외 | 점주가 고친 최종 답변에 틀린 정보 | 저장 후 화면에 경고 | `tests/test_inquiry_flow.py::test_check_answer_flags_owner_mistake`, `::test_owner_answered_shows_warning_for_wrong_final` | ✅ |
+| TC-03-23 | F-03-5 | 정상 | AI 실패 후 점주가 직접 작성해 발송 완료 | 상태 "답변완료", AI 원본 없음 | `tests/test_inquiry_flow.py::test_finalize_without_ai_draft`, `::test_owner_ai_failure_then_write_directly` | ✅ |
+| TC-03-24 | F-03-4 | 정상 | 상세 화면 입력칸 | AI 초안이 미리 채워짐, 복사 버튼 표시 | `tests/test_inquiry_flow.py::test_owner_detail_prefills_ai_draft` | ✅ |
 
 ### AI Adapter (정회성)
 
