@@ -1,6 +1,6 @@
 """점주 화면 라우터."""
 
-from datetime import time
+from datetime import datetime, time
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
@@ -10,10 +10,13 @@ from sqlalchemy.orm import Session
 
 from app.adapters.ai import get_ai_client
 from app.db.database import get_session
-from app.models.models import MenuItem, Store
+from app.models.models import MarketingContent, MenuItem, Store
 from app.presentation.templating import templates
+from app.repositories.inquiry_repository import InquiryRepository
+from app.repositories.marketing_repository import list_marketing_contents
 from app.services.marketing.service import MarketingService
 from app.services.marketing.strategies import available_channels
+from app.services.reservation.service import ReservationService
 from app.services.store.service import StoreService
 
 CHANNEL_LABELS = {
@@ -42,10 +45,48 @@ STORE_ID = 1  # 단일 매장 시스템 (추후 인증 연동 시 세션에서 �
 
 
 @router.get("", response_class=HTMLResponse)
-def dashboard(request: Request) -> HTMLResponse:
-    """점주 대시보드 (F-05). TODO(전지호): 오늘 예약·미응답 문의·최근 콘텐츠 조회."""
+def dashboard(request: Request, session: SessionDep) -> HTMLResponse:
+    """오늘부터 이후의 요청·확정 예약, 미응답 문의 수, 저장된 콘텐츠 수와 최근 콘텐츠를 보여준다 (F-05)."""
+    today = datetime.now().date()
+
+    # 오늘 날짜를 포함해 이후 날짜의 요청·확정 예약만 표시한다.
+    # 방문완료·취소·노쇼는 앞으로 방문할 예약이 아니므로 제외한다.
+    all_reservations = ReservationService(session).list_for_store(STORE_ID)
+    reservations = sorted(
+        (
+            r for r in all_reservations
+            if r.reserved_at.date() >= today and r.status in {"요청", "확정"}
+        ),
+        key=lambda r: r.reserved_at,
+    )
+
+    status_counts = {
+        "요청": sum(r.status == "요청" for r in reservations),
+        "확정": sum(r.status == "확정" for r in reservations),
+    }
+
+    inquiries = InquiryRepository(session).list_by_store(STORE_ID)
+    unanswered = sum(q.status == "미응답" for q in inquiries)
+
+    contents_count = (
+        session.query(MarketingContent)
+        .filter(MarketingContent.store_id == STORE_ID)
+        .count()
+    )
+    contents = list_marketing_contents(session, STORE_ID, limit=5)
+
     return templates.TemplateResponse(
-        request, "owner/dashboard.html", {"reservations": [], "unanswered": 0, "contents": []}
+        request,
+        "owner/dashboard.html",
+        {
+            "today": today,
+            "reservations": reservations,
+            "status_counts": status_counts,
+            "unanswered": unanswered,
+            "contents": contents,
+            "contents_count": contents_count,
+            "channel_labels": CHANNEL_LABELS,
+        },
     )
 
 
@@ -329,7 +370,7 @@ def add_menu(store_id: int, body: MenuCreate, svc: StoreSvcDep):
         item = svc.add_menu(store_id, body.name, body.price, body.description, body.on_sale)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e)) from e
-    return {"id": item.id, "name": item.name, "price": item.price}
+    return {"id": item.id, "name": item.name, "price": item.price, "on_sale": item.on_sale}
 
 
 @router.patch("/stores/{store_id}/menus/{menu_id}")
@@ -351,7 +392,7 @@ def delete_menu(store_id: int, menu_id: int, svc: StoreSvcDep):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
-# ── FAQ 엔드포인트 (F-01-3) ───────────────────────────────
+# ── FAQ 엔드포인트 (F-01-3) ────────────────────────────────
 
 
 @router.get("/stores/{store_id}/faqs")
@@ -370,8 +411,8 @@ def add_faq(store_id: int, body: FAQCreate, svc: StoreSvcDep):
     try:
         faq = svc.add_faq(store_id, body.question, body.answer)
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e)) from e
-    return {"id": faq.id, "question": faq.question}
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+    return {"id": faq.id, "question": faq.question, "answer": faq.answer}
 
 
 @router.patch("/stores/{store_id}/faqs/{faq_id}")
@@ -385,9 +426,8 @@ def update_faq(store_id: int, faq_id: int, body: FAQUpdate, svc: StoreSvcDep):
 
 
 @router.delete("/stores/{store_id}/faqs/{faq_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_faq(store_id: int, faq_id: int, svc: StoreSvcDep):
+def delete_faq(faq_id: int, session: SessionDep):
     """FAQ 삭제."""
-    try:
-        svc.delete_faq(store_id, faq_id)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+    service = MarketingService(get_ai_client())
+    service.delete(session=session, content_id=content_id, store_id=STORE_ID)
+    return RedirectResponse(url="/owner/marketing", status_code=status.HTTP_303_SEE_OTHER)
