@@ -25,6 +25,8 @@ MENU_PRICE_PATTERN = re.compile(
     r"([가-힣A-Za-z0-9][가-힣A-Za-z0-9\s·()_-]{0,30}?)"
     r"(?:은|는|이|가)\s*(?:가격은\s*)?[\d,]+\s*원"
 )
+# 한글 문장에 섞인 일본어 가나 및 한자 계열 문자를 탐지한다.
+NON_KOREAN_CJK_PATTERN = re.compile(r"[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]")
 
 
 class MarketingService:
@@ -51,6 +53,11 @@ class MarketingService:
             )
 
         violations = strategy.check(text)
+        if NON_KOREAN_CJK_PATTERN.search(text):
+            violations.append(
+                "중국어·일본어 등 외국어 문자가 포함되어 있습니다. "
+                "문구를 확인하고 다시 생성해 주세요."
+            )
 
         # 매장 및 메뉴 정보가 전달되면 가격과 영업시간 검증
         if store is not None and menus is not None:
@@ -123,6 +130,6 @@ class MarketingService:
     ) -> bool:
         return delete_marketing_content(
             session=session,
-            content_id=content_id,
             store_id=store_id,
+            content_id=content_id,
         )
