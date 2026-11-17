@@ -1,6 +1,6 @@
 import json
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.models import MarketingContent
@@ -52,6 +52,16 @@ def delete_marketing_content(
     except Exception:
         session.rollback()
         raise
+
+
+def count_marketing_contents(session: Session, store_id: int) -> int:
+    """매장에 저장된 홍보 콘텐츠 전체 개수를 조회한다 (F-05)."""
+    statement = (
+        select(func.count())
+        .select_from(MarketingContent)
+        .where(MarketingContent.store_id == store_id)
+    )
+    return int(session.scalar(statement) or 0)
 
 
 def list_marketing_contents(

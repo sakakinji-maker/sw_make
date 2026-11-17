@@ -1,16 +1,140 @@
 {% extends "base_owner.html" %}
 {% block title %}점주 대시보드{% endblock %}
 {% block content %}
-<h1 class="h4 mb-4">오늘의 매장 현황</h1>
-<div class="row g-3">
-  <div class="col-md-4"><div class="card"><div class="card-body">
-    <h2 class="h6">오늘 예약</h2><p class="display-6">{{ reservations|length }}</p>
-  </div></div></div>
-  <div class="col-md-4"><div class="card"><div class="card-body">
-    <h2 class="h6">미응답 문의</h2><p class="display-6">{{ unanswered }}</p>
-  </div></div></div>
-  <div class="col-md-4"><div class="card"><div class="card-body">
-    <h2 class="h6">최근 생성 콘텐츠</h2><p class="display-6">{{ contents|length }}</p>
-  </div></div></div>
+<style>
+  .dashboard-content-text {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    max-width: 100%;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    overflow: hidden;
+  }
+  .dashboard-content-row {
+    min-width: 0;
+    max-width: 100%;
+  }
+</style>
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+  <div>
+    <h1 class="h4 mb-1">매장 현황</h1>
+    <p class="text-muted small mb-0">{{ today.strftime('%Y년 %m월 %d일') }}</p>
+  </div>
+  <a class="btn btn-sm btn-outline-primary" href="/owner/store">매장 정보 관리</a>
 </div>
+
+<!-- 요약 카드 -->
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <a href="/owner/reservations" class="text-decoration-none text-reset">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <h2 class="h6 text-muted mb-2">다가오는 예약</h2>
+            <span class="badge text-bg-primary">예약 관리</span>
+          </div>
+          <p class="display-6 fw-semibold mb-2">{{ reservations|length }}건</p>
+          <div class="d-flex flex-wrap gap-2 small">
+            {% for label, count in status_counts.items() %}
+            <span class="text-muted">{{ label }} {{ count }}</span>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-4">
+    <a href="/owner/inquiries" class="text-decoration-none text-reset">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <h2 class="h6 text-muted mb-2">미응답 문의</h2>
+            <span class="badge text-bg-warning">문의함</span>
+          </div>
+          <p class="display-6 fw-semibold mb-0">{{ unanswered }}건</p>
+        </div>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-4">
+    <a href="/owner/marketing" class="text-decoration-none text-reset">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <h2 class="h6 text-muted mb-2">최근 생성 콘텐츠</h2>
+            <span class="badge text-bg-success">홍보 문구</span>
+          </div>
+          <p class="display-6 fw-semibold mb-0">{{ contents_count }}건</p>
+        </div>
+      </div>
+    </a>
+  </div>
+</div>
+
+<!-- 다가오는 예약 목록 -->
+<section class="card shadow-sm mb-4">
+  <div class="card-header bg-white d-flex justify-content-between align-items-center">
+    <h2 class="h6 mb-0">다가오는 예약 목록</h2>
+    <a class="small" href="/owner/reservations">전체 예약 보기</a>
+  </div>
+  {% if reservations %}
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr><th>일시</th><th>고객</th><th>인원</th><th>요청 사항</th><th>상태</th></tr>
+      </thead>
+      <tbody>
+      {% for r in reservations %}
+        <tr onclick="location.href='/owner/reservations/{{ r.id }}'" style="cursor:pointer;">
+          <td class="text-nowrap">{{ r.reserved_at.strftime('%m/%d %H:%M') }}</td>
+          <td class="text-nowrap">{{ r.customer.name }}</td>
+          <td>{{ r.party_size }}명</td>
+          <td>{{ r.request or '-' }}</td>
+          <td>
+            {% set badge = {
+              '요청': 'text-bg-warning',
+              '확정': 'text-bg-primary',
+              '방문완료': 'text-bg-success',
+              '취소': 'text-bg-secondary',
+              '노쇼': 'text-bg-danger'
+            } %}
+            <span class="badge {{ badge.get(r.status, 'text-bg-secondary') }}">{{ r.status }}</span>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body text-muted">오늘 이후 요청 또는 확정된 예약이 없습니다.</div>
+  {% endif %}
+</section>
+
+<!-- 최근 콘텐츠 -->
+<section class="card shadow-sm">
+  <div class="card-header bg-white d-flex justify-content-between align-items-center">
+    <h2 class="h6 mb-0">최근 생성 콘텐츠</h2>
+    <a class="small" href="/owner/marketing">홍보 문구 관리</a>
+  </div>
+  {% if contents %}
+  <div class="list-group list-group-flush">
+    {% for c in contents %}
+    <a class="list-group-item list-group-item-action" href="/owner/marketing">
+      <div class="d-flex justify-content-between align-items-center gap-3">
+        <div class="dashboard-content-row flex-grow-1">
+          <div class="fw-semibold text-break">{{ channel_labels.get(c.channel, c.channel) }} · {{ c.target }}</div>
+          <div class="small text-muted dashboard-content-text">{{ c.text }}</div>
+        </div>
+        <time class="small text-muted text-nowrap flex-shrink-0">{{ c.saved_at.strftime('%m/%d %H:%M') }}</time>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card-body text-muted">아직 생성된 홍보 콘텐츠가 없습니다.</div>
+  {% endif %}
+</section>
 {% endblock %}
