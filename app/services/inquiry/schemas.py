@@ -4,9 +4,16 @@
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 MAX_CONTENT_LENGTH = 1000
+MAX_ANSWER_LENGTH = 2000
 PHONE_PATTERN = r"^01[016789]-?\d{3,4}-?\d{4}$"
 
-FIELD_LABELS = {"store_id": "매장", "name": "이름", "phone": "연락처", "content": "문의 내용"}
+FIELD_LABELS = {
+    "store_id": "매장",
+    "name": "이름",
+    "phone": "연락처",
+    "content": "문의 내용",
+    "answer": "답변",
+}
 
 
 class InquiryCreate(BaseModel):
@@ -16,6 +23,14 @@ class InquiryCreate(BaseModel):
     name: str = Field(min_length=1, max_length=50)
     phone: str = Field(pattern=PHONE_PATTERN)
     content: str = Field(min_length=1, max_length=MAX_CONTENT_LENGTH)
+
+
+class AnswerSubmit(BaseModel):
+    """점주가 확정하는 최종 답변 (F-03-4, F-03-5)."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    answer: str = Field(min_length=1, max_length=MAX_ANSWER_LENGTH)
 
 
 def korean_errors(error: ValidationError) -> list[str]:

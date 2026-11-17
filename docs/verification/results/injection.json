@@ -1,0 +1,98 @@
+{
+  "injected": [
+    {
+      "kind": "가격",
+      "text": "아메리카노는 4,000원입니다.",
+      "detected": true
+    },
+    {
+      "kind": "가격",
+      "text": "밤라떼는 6,500원이에요.",
+      "detected": true
+    },
+    {
+      "kind": "가격",
+      "text": "카페라떼는 5,500원입니다.",
+      "detected": true
+    },
+    {
+      "kind": "가격",
+      "text": "크루아상은 3000원입니다.",
+      "detected": true
+    },
+    {
+      "kind": "시각",
+      "text": "영업시간은 10:00부터 21:00까지입니다.",
+      "detected": true
+    },
+    {
+      "kind": "시각",
+      "text": "평일에는 22:00까지 영업합니다.",
+      "detected": true
+    },
+    {
+      "kind": "시각",
+      "text": "저녁 10시까지 영업합니다.",
+      "detected": true
+    },
+    {
+      "kind": "휴무일",
+      "text": "매주 화요일은 휴무입니다.",
+      "detected": true
+    },
+    {
+      "kind": "휴무일",
+      "text": "월요일에도 정상 영업합니다.",
+      "detected": true
+    },
+    {
+      "kind": "휴무일",
+      "text": "연중무휴로 운영합니다.",
+      "detected": true
+    }
+  ],
+  "controls": [
+    {
+      "text": "아메리카노는 4,500원입니다.",
+      "flagged": false
+    },
+    {
+      "text": "밤라떼는 6,000원입니다.",
+      "flagged": false
+    },
+    {
+      "text": "영업시간은 09:00~21:00입니다.",
+      "flagged": false
+    },
+    {
+      "text": "9:00에 문을 엽니다.",
+      "flagged": false
+    },
+    {
+      "text": "매주 월요일은 휴무입니다.",
+      "flagged": false
+    },
+    {
+      "text": "화요일부터 일요일까지 영업합니다.",
+      "flagged": false
+    },
+    {
+      "text": "주차는 매장에 직접 문의해 주세요.",
+      "flagged": false
+    },
+    {
+      "text": "카페라떼 5,000원, 카푸치노 5,000원입니다.",
+      "flagged": false
+    },
+    {
+      "text": "치즈케이크는 6,500원입니다.",
+      "flagged": false
+    },
+    {
+      "text": "월요일을 제외하고 매일 영업합니다.",
+      "flagged": false
+    }
+  ],
+  "detection_rate": 1.0,
+  "false_positive_rate": 0.0
+}

@@ -18,7 +18,7 @@ from app.main import app
 from app.models.models import Inquiry, Store
 from app.presentation.routers.inquiry import get_ai
 from app.repositories.inquiry_repository import InquiryRepository
-from app.services.inquiry.schemas import InquiryCreate, korean_errors
+from app.services.inquiry.schemas import AnswerSubmit, InquiryCreate, korean_errors
 from app.services.inquiry.service import InquiryNotFoundError, InquiryService, StoreNotFoundError
 
 
@@ -194,3 +194,94 @@ def test_owner_draft_ai_failure_message(client):
     redirect = client.post("/owner/inquiries/2/draft", follow_redirects=False)
     assert redirect.headers["location"].endswith("?ai_error=1")
     assert "직접 답변을 작성" in client.get(redirect.headers["location"]).text
+
+
+# ---------- 13주차: F-03-3 휴무일, F-03-4 발송 완료, F-03-5 직접 작성 ----------
+# AI-assisted (Claude) — 정회성 검토 완료
+
+
+def test_generate_draft_detects_wrong_closed_day(session):
+    ai = MockAIClient(fixed_response="온기 카페는 화요일에 쉽니다.")  # 실제 휴무는 월요일
+    q = first_inquiry(session)
+    result = service_with(session, ai).generate_draft(q.id)
+    assert [(m.kind, m.found) for m in result.mismatches] == [("휴무일", "화요일")]
+
+
+def test_finalize_saves_answer_and_keeps_ai_draft(session):
+    ai = MockAIClient(fixed_response="아메리카노는 4,000원입니다.")
+    q = first_inquiry(session)
+    service = service_with(session, ai)
+    service.generate_draft(q.id)
+    service.finalize(q.id, AnswerSubmit(answer="아메리카노는 4,500원입니다."))
+    session.refresh(q)
+    assert q.status == "답변완료" and q.final_answer == "아메리카노는 4,500원입니다."
+    assert q.ai_draft == "아메리카노는 4,000원입니다."  # 검증 보고서용 원본 보존
+
+
+def test_finalize_without_ai_draft(session):
+    # F-03-5: AI 실패로 초안이 없어도 점주가 직접 쓴 답변으로 확정할 수 있다
+    q = first_inquiry(session)
+    service = service_with(session, MockAIClient(fail=True))
+    assert service.generate_draft(q.id).error
+    service.finalize(q.id, AnswerSubmit(answer="직접 작성한 답변"))
+    session.refresh(q)
+    assert q.status == "답변완료" and q.ai_draft is None
+
+
+def test_finalize_unknown_inquiry(session):
+    with pytest.raises(InquiryNotFoundError):
+        service_with(session).finalize(9999, AnswerSubmit(answer="답변"))
+
+
+@pytest.mark.parametrize(
+    ("value", "message"),
+    [
+        ("   ", "답변을(를) 입력해 주세요."),
+        ("가" * 2001, "답변은(는) 2,000자 이하로 입력해 주세요."),
+    ],
+)
+def test_invalid_answer_has_korean_message(value, message):
+    with pytest.raises(ValidationError) as info:
+        AnswerSubmit(answer=value)
+    assert message in korean_errors(info.value)
+
+
+def test_check_answer_flags_owner_mistake(session):
+    q = first_inquiry(session)
+    mismatches = service_with(session).check_answer(q, "22:00까지 영업합니다.")
+    assert [m.kind for m in mismatches] == ["시각"]
+
+
+def test_owner_submit_answer_marks_answered(client):
+    redirect = client.post("/owner/inquiries/1/answer", data={"answer": "4,500원입니다."})
+    assert redirect.status_code == 200  # TestClient가 303을 따라간다
+    assert "발송 완료로 저장했습니다" in redirect.text and "답변완료" in redirect.text
+    assert "답변 복사" in redirect.text
+
+
+def test_owner_submit_empty_answer_rejected(client):
+    page = client.post("/owner/inquiries/1/answer", data={"answer": "  "})
+    assert page.status_code == 400 and "답변을(를) 입력해 주세요." in page.text
+    assert "미응답" in page.text
+
+
+def test_owner_submit_answer_404(client):
+    assert client.post("/owner/inquiries/9999/answer", data={"answer": "x"}).status_code == 404
+
+
+def test_owner_detail_prefills_ai_draft(client):
+    client.post("/owner/inquiries/1/draft")
+    page = client.get("/owner/inquiries/1")
+    assert ">아메리카노는 4,000원입니다.</textarea>" in page.text
+
+
+def test_owner_ai_failure_then_write_directly(client):
+    app.dependency_overrides[get_ai] = lambda: MockAIClient(fail=True)
+    client.post("/owner/inquiries/2/draft")
+    page = client.post("/owner/inquiries/2/answer", data={"answer": "직접 쓴 답변입니다."})
+    assert "발송 완료로 저장했습니다" in page.text and "직접 쓴 답변입니다." in page.text
+
+
+def test_owner_answered_shows_warning_for_wrong_final(client):
+    page = client.post("/owner/inquiries/1/answer", data={"answer": "3,000원입니다."})
+    assert "저장된 답변에 매장 정보와 다른 내용" in page.text

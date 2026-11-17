@@ -164,14 +164,15 @@ PM은 일정과 회의를 관리하고, 요구분석 문서를 책임지며, 예
 - [x] **실제 AI Adapter 구현** → `app/adapters/ai/external_adapter.py` (Claude·Gemini·OpenAI 3종, `.env`의 `AI_PROVIDER`로 선택. 실제 키 연결 확인은 API 결정 후)
 - [x] **F-03 문의 등록(고객 화면) + AI 답변 초안 생성(점주 화면)** (F-03-1, F-03-2, F-03-3 대조 결과 저장·경고 표시까지)
   - 고객: `/inquiries/new` · 점주: `/owner/inquiries`
-- [ ] **Gemini API 키 발급** → `.env` 설정 → `python -m app.adapters.ai.check`로 연결 확인 ([순서](docs/ai_api_selection.md#6-gemini-키-발급과-연결-확인))
-  - 11/10 키 발급·`.env` 설정 완료. 키로 모델 목록 조회는 성공했으나 생성 요청이 Gemini 과부하(HTTP 503)로 실패해 재시도 중
+- [x] **Gemini API 키 발급** → `.env` 설정 → `python -m app.adapters.ai.check`로 연결 확인 ([순서](docs/ai_api_selection.md#6-gemini-키-발급과-연결-확인))
+  - 11/10 키 발급·`.env` 설정 완료. 11/17 `AI_MODEL=gemini-3.5-flash-lite`로 연결 확인 성공
+  - `gemini-3.8-flash`는 11/16·11/17 모두 응답 시간 초과. 시연 때는 flash-lite를 쓰거나 당일 다시 확인
 
 **13주차 (11/17 ~ 11/23) · 구현 2·검증** ← 정회성이 가장 바쁜 주
 
-- [ ] **F-03 마무리**: DB 대조 경고 표시(F-03-3), 점주 수정·발송 완료·복사(F-03-4), AI 실패 시 직접 작성(F-03-5)
-- [ ] **테스트 케이스 취합**: 세 사람의 기능별 정상·예외 테스트가 모두 있는지 확인, `docs/test_cases.md` 완성
-- [ ] **AI 검증 실험** (기획서 12절) → 결과는 `docs/verification/`
+- [x] **F-03 마무리**: DB 대조 경고 표시(F-03-3, 휴무일 대조 추가), 점주 수정·발송 완료·복사(F-03-4), AI 실패 시 직접 작성(F-03-5)
+- [x] **테스트 케이스 취합**: 세 사람의 기능별 정상·예외 테스트가 모두 있는지 확인, `docs/test_cases.md` 완성 (11/16: ✅ 76건, 남은 3건은 [취합 결과](docs/test_cases.md#13주차-취합-결과-남은-항목) 참고)
+- [x] **AI 검증 실험** (기획서 12절) → [결과](docs/verification/experiment_week13.md), 실행: `python -m scripts.verify_ai --ai` (사람 평가는 팀원 판정 필요)
   - 문의 30건 DB 대조 불일치율, 사람 평가(그대로 사용 / 일부 수정 / 사용 불가)
   - 오류 삽입 초안 10건으로 대조 장치 탐지율
   - 채널 3개 × 10건 규칙 준수율 (전지호와 함께)
