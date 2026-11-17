@@ -9,7 +9,10 @@ from sqlalchemy.orm import Session
 
 from app.models.models import MarketingContent, Reservation
 from app.repositories.inquiry_repository import InquiryRepository
-from app.repositories.marketing_repository import count_marketing_contents, list_marketing_contents
+from app.repositories.marketing_repository import (
+    count_marketing_contents,
+    list_marketing_contents,
+)
 from app.services.reservation.service import ReservationService
 
 
