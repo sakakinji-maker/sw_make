@@ -56,6 +56,14 @@
             </div>
             <input type="hidden" name="keywords_raw" id="keywords_hidden" value="{{ form.keywords_raw or '' }}">
           </div>
+          <div class="mb-3">
+            <label class="form-label" for="extra_note">
+              오늘의 특이사항 <small class="text-muted">(선택) — AI에게 직접 전달할 추가 내용</small>
+            </label>
+            <textarea class="form-control" id="extra_note" name="extra_note" rows="3"
+              placeholder="예) 오늘 치즈케이크 품절 / 우천으로 테라스 사용 불가 / 신메뉴 말차라떼 출시 첫날"
+              >{{ form.extra_note or '' }}</textarea>
+          </div>
           <button class="btn btn-primary w-100">✨ 문구 생성</button>
         </form>
       </div>

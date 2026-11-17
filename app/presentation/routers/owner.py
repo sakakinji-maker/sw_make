@@ -179,9 +179,12 @@ def generate_marketing(
     channel: str = Form(...),
     target: str = Form(...),
     keywords_raw: str = Form(""),
+    extra_note: str = Form(""),
 ) -> HTMLResponse:
     """홍보 문구 생성 처리."""
     keywords = [k.strip() for k in keywords_raw.split(",") if k.strip()]
+    if extra_note.strip():
+        keywords.append(f"[특이사항] {extra_note.strip()}")
     store = session.get(Store, STORE_ID)
     menus = session.query(MenuItem).filter(MenuItem.store_id == STORE_ID).all()
 
@@ -216,7 +219,7 @@ def generate_marketing(
             "channel_labels": CHANNEL_LABELS,
             "contents": contents,
             "result": result,
-            "form": {"channel": channel, "target": target, "keywords_raw": keywords_raw},
+            "form": {"channel": channel, "target": target, "keywords_raw": keywords_raw, "extra_note": extra_note},
         },
     )
 
