@@ -56,7 +56,6 @@ class InquiryRepository:
         )
         return list(self.session.scalars(stmt))
 
-
     def count_unanswered_by_store(self, store_id: int) -> int:
         """대시보드에 표시할 미응답 문의 수를 조회한다 (F-05)."""
         stmt = (
