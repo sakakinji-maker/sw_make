@@ -12,33 +12,79 @@
   <p class="mb-0" style="white-space: pre-wrap">{{ inquiry.content }}</p>
 </div>
 
-{% if ai_error %}
-<div class="alert alert-danger">AI 초안을 만들지 못했습니다. 잠시 후 다시 시도하거나 직접 답변을 작성해 주세요.</div>
+{% if sent %}
+<div class="alert alert-success">답변을 발송 완료로 저장했습니다. 아래 "답변 복사" 버튼으로 고객에게 보낼 문구를 복사하세요.</div>
 {% endif %}
+{% if ai_error %}
+<div class="alert alert-danger">AI 초안을 만들지 못했습니다. 잠시 후 다시 시도하거나 아래 칸에 직접 답변을 작성해 주세요.</div>
+{% endif %}
+{% for e in errors %}
+<div class="alert alert-danger py-2">{{ e }}</div>
+{% endfor %}
 
 <div class="card card-body">
   <div class="d-flex justify-content-between align-items-center mb-2">
-    <h2 class="h6 mb-0">답변 초안</h2>
+    <h2 class="h6 mb-0">답변</h2>
+    {% if inquiry.status == '미응답' %}
     <form method="post" action="/owner/inquiries/{{ inquiry.id }}/draft">
-      <button class="btn btn-sm btn-primary">{{ 'AI 초안 다시 만들기' if inquiry.ai_draft else 'AI 초안 생성' }}</button>
+      <button class="btn btn-sm btn-outline-primary">{{ 'AI 초안 다시 만들기' if inquiry.ai_draft else 'AI 초안 생성' }}</button>
     </form>
+    {% endif %}
   </div>
 
-  {% if inquiry.ai_draft %}
+  {# F-03-3: AI 초안 대조 결과 (발송 전까지만 보여준다) #}
+  {% if inquiry.ai_draft and inquiry.status == '미응답' %}
     {% if mismatches %}
     <div class="alert alert-warning">
-      <strong>매장 정보와 다른 내용이 있습니다. 발송 전에 확인하세요.</strong>
+      <strong>AI 초안에 매장 정보와 다른 내용이 있습니다. 발송 전에 확인하세요.</strong>
       <ul class="mb-0">
         {% for m in mismatches %}<li>{{ m.kind }} <code>{{ m.found }}</code>: {{ m.message }}</li>{% endfor %}
       </ul>
     </div>
     {% else %}
-    <div class="alert alert-success py-2">가격·영업시간이 매장 정보와 일치합니다.</div>
+    <div class="alert alert-success py-2">AI 초안의 가격·영업시간·휴무일이 매장 정보와 일치합니다.</div>
     {% endif %}
-    <textarea class="form-control" rows="6">{{ inquiry.ai_draft }}</textarea>
-    <p class="text-muted small mt-2 mb-0">AI가 만든 초안입니다. 확인·수정 후 발송하세요. (발송 완료 처리는 13주차 구현 예정)</p>
-  {% else %}
-    <p class="text-muted mb-0">아직 초안이 없습니다. 위 버튼을 눌러 AI 초안을 만드세요.</p>
+  {% elif not inquiry.ai_draft and inquiry.status == '미응답' %}
+    <p class="text-muted small">AI 초안을 만들거나, 아래 칸에 직접 답변을 작성하세요.</p>
+  {% endif %}
+
+  {# 확정된 답변도 같은 기준으로 대조해 보여준다 #}
+  {% if final_mismatches %}
+  <div class="alert alert-warning">
+    <strong>저장된 답변에 매장 정보와 다른 내용이 있습니다.</strong>
+    <ul class="mb-0">
+      {% for m in final_mismatches %}<li>{{ m.kind }} <code>{{ m.found }}</code>: {{ m.message }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {# F-03-4 수정·발송 완료·복사, F-03-5 직접 작성 #}
+  <form method="post" action="/owner/inquiries/{{ inquiry.id }}/answer">
+    <textarea id="answer" name="answer" class="form-control" rows="7" maxlength="{{ max_answer_length }}"
+              placeholder="고객에게 보낼 답변을 입력하세요.">{{ answer }}</textarea>
+    <div class="d-flex gap-2 mt-2">
+      <button class="btn btn-primary">{{ '답변 수정 저장' if inquiry.status != '미응답' else '발송 완료' }}</button>
+      <button type="button" class="btn btn-outline-secondary" id="copy-btn">답변 복사</button>
+      <span class="text-muted small align-self-center" id="copy-msg"></span>
+    </div>
+  </form>
+  {% if inquiry.ai_draft and inquiry.status == '미응답' %}
+  <p class="text-muted small mt-2 mb-0">AI가 만든 초안입니다. 확인·수정한 뒤 "발송 완료"를 누르세요. AI 원본은 검증용으로 따로 보관됩니다.</p>
   {% endif %}
 </div>
+
+<script>
+  // 답변 복사 (F-03-4). 클립보드 API를 못 쓰는 환경(http 등)에서는 선택 후 복사로 대체한다.
+  document.getElementById("copy-btn").addEventListener("click", async () => {
+    const box = document.getElementById("answer");
+    const msg = document.getElementById("copy-msg");
+    try {
+      await navigator.clipboard.writeText(box.value);
+    } catch (e) {
+      box.select();
+      document.execCommand("copy");
+    }
+    msg.textContent = "복사했습니다.";
+  });
+</script>
 {% endblock %}
