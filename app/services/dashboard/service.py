@@ -41,8 +41,7 @@ class DashboardService:
         reservations = [
             reservation
             for reservation in self.reservations.list_for_store(store_id)
-            if reservation.reserved_at.date() >= today
-            and reservation.status in {"요청", "확정"}
+            if reservation.reserved_at.date() >= today and reservation.status in {"요청", "확정"}
         ]
         reservations.sort(key=lambda reservation: reservation.reserved_at)
         status_counts = {
