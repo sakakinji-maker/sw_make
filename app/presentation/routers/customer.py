@@ -28,6 +28,7 @@ def home(request: Request, session: SessionDep) -> HTMLResponse:
     except ValueError:
         store, menus, faqs = None, [], []
     return templates.TemplateResponse(
-        request, "customer/index.html",
+        request,
+        "customer/index.html",
         {"store": store, "menus": menus, "faqs": faqs},
     )
