@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}내 문의{% endblock %}
+{% block content %}
+{# F-03-6: 고객이 연락처로 자기 문의와 점주가 확정한 답변을 확인한다. AI 초안은 보여주지 않는다. #}
+<h1 class="h4 mb-4">내 문의 · 답변 확인</h1>
+
+{% if errors %}
+<div class="alert alert-danger" role="alert">
+  <ul class="mb-0">{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+<form method="post" action="/inquiries/lookup" class="card card-body mb-4">
+  <label for="phone" class="form-label">문의할 때 입력한 연락처</label>
+  <div class="d-flex gap-2">
+    <input id="phone" name="phone" class="form-control" placeholder="010-1234-5678" value="{{ phone or '' }}" required>
+    <button class="btn btn-primary text-nowrap">조회</button>
+  </div>
+</form>
+
+{% if phone is not none and not errors %}
+  {% if not inquiries %}
+  <div class="alert alert-secondary">이 연락처로 남긴 문의가 없습니다.</div>
+  {% else %}
+  {% for q in inquiries %}
+  <div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><strong>{{ q.store_name }}</strong> <span class="text-muted small">· 접수 번호 {{ q.id }} · {{ q.received_at.strftime('%Y-%m-%d %H:%M') }}</span></span>
+      {% if q.answer %}
+      <span class="badge bg-success">답변 완료</span>
+      {% else %}
+      <span class="badge bg-secondary">답변 대기</span>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      <p class="small text-muted mb-1">문의 내용</p>
+      <p style="white-space: pre-line">{{ q.content }}</p>
+      {% if q.answer %}
+      <p class="small text-muted mb-1">매장 답변</p>
+      <div class="border-start border-3 border-success ps-3" style="white-space: pre-line">{{ q.answer }}</div>
+      {% else %}
+      <p class="text-muted mb-0">매장에서 확인 중입니다. 답변이 등록되면 이 화면에서 확인할 수 있습니다.</p>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+  {% endif %}
+{% endif %}
+{% endblock %}

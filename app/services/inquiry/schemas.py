@@ -33,6 +33,19 @@ class AnswerSubmit(BaseModel):
     answer: str = Field(min_length=1, max_length=MAX_ANSWER_LENGTH)
 
 
+# AI-assisted (Claude) — 정회성 검토 완료
+class InquiryLookup(BaseModel):
+    """고객이 자기 문의와 답변을 조회할 때 입력하는 연락처 (F-03-6)."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    phone: str = Field(pattern=PHONE_PATTERN)
+
+    @property
+    def digits(self) -> str:
+        return self.phone.replace("-", "")
+
+
 def korean_errors(error: ValidationError) -> list[str]:
     """Pydantic 오류를 사용자에게 보여줄 한국어 문장으로 바꾼다."""
     messages = []

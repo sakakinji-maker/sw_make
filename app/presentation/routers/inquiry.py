@@ -22,6 +22,7 @@ from app.services.inquiry.schemas import (
     MAX_CONTENT_LENGTH,
     AnswerSubmit,
     InquiryCreate,
+    InquiryLookup,
     korean_errors,
 )
 from app.services.inquiry.service import (
@@ -103,6 +104,39 @@ def _render_form(
     }
     return templates.TemplateResponse(
         request, "customer/inquiry_form.html", context, status_code=status_code
+    )
+
+
+# ---------- 고객 화면: 내 문의·답변 확인 (F-03-6) ----------
+# AI-assisted (Claude) — 정회성 검토 완료
+
+
+@router.get("/inquiries/lookup", response_class=HTMLResponse)
+def inquiry_lookup_form(request: Request) -> HTMLResponse:
+    return _render_lookup(request, phone=None, inquiries=[])
+
+
+@router.post("/inquiries/lookup", response_class=HTMLResponse)
+def inquiry_lookup(
+    request: Request, service: ServiceDep, phone: Annotated[str, Form()] = ""
+) -> HTMLResponse:
+    try:
+        lookup = InquiryLookup(phone=phone)
+    except ValidationError as e:
+        return _render_lookup(request, phone, [], errors=korean_errors(e), status_code=400)
+    return _render_lookup(request, lookup.phone, service.find_for_customer(lookup))
+
+
+def _render_lookup(
+    request: Request,
+    phone: str | None,
+    inquiries: list,
+    errors: list[str] | None = None,
+    status_code: int = 200,
+) -> HTMLResponse:
+    context = {"phone": phone, "inquiries": inquiries, "errors": errors or []}
+    return templates.TemplateResponse(
+        request, "customer/inquiry_lookup.html", context, status_code=status_code
     )
 
 
