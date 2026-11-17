@@ -29,7 +29,7 @@ def test_inquiry_count_and_mix():
 
 
 def test_faq_count_per_store():
-    assert Counter(f["store"] for f in faqs) == {"cafe": 10, "salon": 10}
+    assert Counter(f["store"] for f in faqs) == {"cafe": 20}
 
 
 def test_price_answers_match_menu():

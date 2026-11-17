@@ -21,15 +21,20 @@ class ChannelStrategy(ABC):
     def guide(self) -> str:
         """채널 특성을 AI에게 설명하는 문장."""
 
-    def build_prompt(self, target: str, keywords: list[str]) -> str:
-        return (
+    def build_prompt(self, target: str, keywords: list[str], extra_note: str = "") -> str:
+        prompt = (
             f"{self.guide()}\n"
             f"- 홍보 대상: {target}\n"
             f"- 키워드: {', '.join(keywords) if keywords else '없음'}\n"
+        )
+        if extra_note:
+            prompt += f"- 오늘의 특이사항: {extra_note}\n"
+        prompt += (
             f"- 길이: {self.min_length}~{self.max_length}자\n"
             f"- 해시태그: {self.min_hashtags}~{self.max_hashtags}개\n"
             f"- 어조: {self.tone}"
         )
+        return prompt
 
     def check(self, text: str) -> list[str]:
         """규칙 위반 목록을 돌려준다. (F-04-2) 빈 리스트면 통과."""
