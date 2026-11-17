@@ -6,6 +6,7 @@
     python -m scripts.verify_ai --ai            # + 실제 AI로 F-03 문의 30건, F-04 3채널×10건
     python -m scripts.verify_ai --ai --model gemini-3.5-flash-lite
     python -m scripts.verify_ai --recheck        # 저장된 초안을 지금의 대조 장치로 다시 검사
+    python -m scripts.verify_ai --extra          # 추가 문의 30건(유형 6개)만 실제 AI로 실행
 
 메모리 DB에 가상 데이터(seed_data)를 넣고 실행하므로 app.db 파일은 건드리지 않는다.
 """
@@ -18,6 +19,7 @@ import time
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 from sqlalchemy import create_engine
@@ -33,7 +35,25 @@ from app.services.inquiry.service import InquiryService
 from app.services.marketing.service import MarketingService
 
 RESULT_DIR = Path(__file__).resolve().parents[1] / "docs" / "verification" / "results"
+EXTRA_PATH = RESULT_DIR.parent / "extra_inquiries.json"
 CALL_INTERVAL = 4.5  # 무료 등급 분당 호출 제한(약 15회)을 넘지 않게 쉬는 시간(초)
+FACT_KEYS = ("prices", "open_time", "close_time", "closed_days")
+# 사람 평가 시트의 열. 기준은 docs/verification/eval_rubric.md
+SHEET_HEADER = [
+    "id",
+    "유형",
+    "문의",
+    "기대 답변",
+    "AI 초안",
+    "자동 경고",
+    "정확성(O/X)",
+    "근거성(O/X)",
+    "완전성(O/△/X)",
+    "표현(O/△/X)",
+    "판정(그대로/일부 수정/불가)",
+    "사유",
+    "메모",
+]
 
 # ---------- 오류 삽입 실험 (대조 장치 자체 검증, AI 호출 없음) ----------
 # 온기 카페: 09:00~21:00, 월요일 휴무, 아메리카노 4,500 / 카페라떼 5,000 / 밤라떼 6,000 ...
@@ -135,7 +155,12 @@ def run_inquiries(session: Session, ai: AIClient) -> list[DraftRecord]:
     return records
 
 
-def _draft_one(service: InquiryService, row: dict[str, Any], inquiry: Inquiry) -> DraftRecord:
+def _draft_one(
+    service: InquiryService,
+    row: dict[str, Any],
+    inquiry: Inquiry | SimpleNamespace,
+    judge: Callable[[str, dict[str, Any]], bool | None] = expected_found,
+) -> DraftRecord:
     store = inquiry.store
     started = time.time()
     result = service.draft_answer(store, store.menu_items, store.faqs, inquiry)
@@ -147,11 +172,42 @@ def _draft_one(service: InquiryService, row: dict[str, Any], inquiry: Inquiry) -
         draft=result.draft,
         error=result.error,
         mismatches=[asdict(m) for m in result.mismatches],
-        expected_found=expected_found(result.draft, row.get("expected", {}))
-        if result.draft
-        else None,
+        expected_found=judge(result.draft, row.get("expected", {})) if result.draft else None,
         seconds=round(time.time() - started, 1),
     )
+
+
+# ---------- F-03 추가 문의 30건 (실제 AI, 유형 확대) ----------
+# 기존 30건(가격·영업시간·근거없음)에 없던 유형: FAQ, 조건, 복합, 표현변형, 틀린전제, 정책·악의
+
+
+def extra_expected_found(draft: str, expected: dict[str, Any]) -> bool | None:
+    """추가 문의의 자동 정답 확인. 자동으로 판단할 수 없는 문의(auto=false)는 None."""
+    if expected.get("auto") is False:
+        return None
+    facts = {k: v for k, v in expected.items() if k in FACT_KEYS}
+    checks = [expected_found(draft, facts)] if facts else []
+    checks += [any(word in draft for word in group) for group in expected.get("keywords", [])]
+    checks += [word not in draft for word in expected.get("forbidden", [])]
+    if expected.get("refer"):  # 근거 없는 부분은 직접 문의로 안내해야 한다
+        checks.append("직접 문의" in draft or "문의해 주" in draft)
+    return all(checks)
+
+
+def run_extra(session: Session, ai: AIClient) -> list[DraftRecord]:
+    """DB에 넣지 않은 임시 문의로 초안을 만든다. (가상 데이터 30건은 그대로 둔다)"""
+    rows = json.loads(EXTRA_PATH.read_text(encoding="utf-8"))
+    stores = {"cafe": "온기 카페", "salon": "결 헤어"}
+    service = InquiryService(ai)
+    records = []
+    for row in rows:
+        store = session.query(Store).filter_by(name=stores[row["store"]]).one()
+        # Inquiry 모델을 만들면 세션에 붙어 저장되므로, 매장과 내용만 가진 임시 객체를 쓴다
+        inquiry = SimpleNamespace(store=store, content=row["content"])
+        records.append(_draft_one(service, row, inquiry, extra_expected_found))
+        print(f"  F-03 {row['id']}: {'오류' if records[-1].error else 'OK'}", flush=True)
+        time.sleep(CALL_INTERVAL)
+    return records
 
 
 # ---------- F-04 채널 3개 × 10건 (실제 AI, 전지호와 공동) ----------
@@ -254,17 +310,22 @@ def write_json(name: str, data: Any) -> None:
     (RESULT_DIR / name).write_text(text + "\n", encoding="utf-8")
 
 
-def write_human_sheet(records: list[DraftRecord]) -> None:
-    """팀원이 '그대로 사용 / 일부 수정 / 사용 불가'를 채울 평가 시트. (기획서 12절)"""
-    path = RESULT_DIR / "f03_human_eval.csv"
-    with path.open("w", encoding="utf-8-sig", newline="") as f:  # 엑셀에서 한글이 깨지지 않게
+def write_human_sheet(
+    records: list[DraftRecord],
+    name: str = "f03_human_eval.csv",
+    answers: dict[str, str] | None = None,
+) -> None:
+    """팀원이 기준별 O/△/X와 '그대로 / 일부 수정 / 불가'를 채울 평가 시트. (기획서 12절)"""
+    answers = answers or {}
+    with (RESULT_DIR / name).open(
+        "w", encoding="utf-8-sig", newline=""
+    ) as f:  # 엑셀 한글 깨짐 방지
         w = csv.writer(f)
-        w.writerow(
-            ["id", "유형", "문의", "AI 초안", "자동 경고", "판정(그대로/일부 수정/불가)", "메모"]
-        )
+        w.writerow(SHEET_HEADER)
         for r in records:
             warn = ", ".join(f"{m['kind']} {m['found']}" for m in r.mismatches)
-            w.writerow([r.id, r.category, r.content, r.draft or f"(실패) {r.error}", warn, "", ""])
+            draft = r.draft or f"(실패) {r.error}"
+            w.writerow([r.id, r.category, r.content, answers.get(r.id, ""), draft, warn] + [""] * 7)
 
 
 def memory_session() -> Session:
@@ -284,9 +345,20 @@ def timed(label: str, fn: Callable[[], Any]) -> Any:
     return result
 
 
+def run_extra_experiment(session: Session, ai: AIClient, meta: dict[str, str]) -> None:
+    drafts = timed("F-03 추가 문의", lambda: run_extra(session, ai))
+    summary = summarize_inquiries(drafts)
+    write_json("f03_extra_drafts.json", {"meta": meta, "summary": summary, "records": drafts})
+    rows = json.loads(EXTRA_PATH.read_text(encoding="utf-8"))
+    answers = {row["id"]: row["expected"]["answer"] for row in rows}
+    write_human_sheet(drafts, "f03_extra_human_eval.csv", answers)
+    print(json.dumps(summary, ensure_ascii=False))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="13주차 AI 검증 실험")
     parser.add_argument("--ai", action="store_true", help="실제 AI 호출 실험까지 실행")
+    parser.add_argument("--extra", action="store_true", help="추가 문의 30건(유형 확대)만 실행")
     parser.add_argument("--recheck", action="store_true", help="저장된 초안 재대조")
     parser.add_argument("--model", default=AI_MODEL, help="AI 모델 ID (기본: .env의 AI_MODEL)")
     args = parser.parse_args()
@@ -301,11 +373,15 @@ def main() -> None:
         write_json("f03_recheck.json", rows)
         before, after = (sum(bool(r[k]) for r in rows) for k in ("before", "after"))
         print(f"재대조: 경고 초안 {before}건 → {after}건 (전체 {len(rows)}건)")
-    if not args.ai:
+    if not (args.ai or args.extra):
         return
 
     ai = get_ai_client(AI_PROVIDER, AI_API_KEY, args.model)
     meta = {"provider": AI_PROVIDER, "model": args.model, "run_at": time.strftime("%Y-%m-%d %H:%M")}
+    if args.extra:
+        run_extra_experiment(session, ai, meta)
+    if not args.ai:
+        return
     drafts = timed("F-03 문의 30건", lambda: run_inquiries(session, ai))
     write_json(
         "f03_drafts.json", {"meta": meta, "summary": summarize_inquiries(drafts), "records": drafts}
