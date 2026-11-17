@@ -55,7 +55,8 @@ class MarketingService:
         violations = strategy.check(text)
         if NON_KOREAN_CJK_PATTERN.search(text):
             violations.append(
-                "중국어·일본어 등 외국어 문자가 포함되어 있습니다. 문구를 확인하고 다시 생성해 주세요."
+                "중국어·일본어 등 외국어 문자가 포함되어 있습니다. "
+                "문구를 확인하고 다시 생성해 주세요."
             )
 
         # 매장 및 메뉴 정보가 전달되면 가격과 영업시간 검증
