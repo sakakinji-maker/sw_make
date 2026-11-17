@@ -25,10 +25,11 @@ def store_names(session_factory: sessionmaker) -> list[str]:
         return [s.name for s in session.query(Store).order_by(Store.id)]
 
 
-def test_init_db_adds_default_store_to_empty_db(temp_db):
+def test_init_db_creates_tables_only(temp_db):
+    """init_db는 테이블만 만든다. 매장 데이터는 seed()가 담당한다."""
     database.init_db()
-    database.init_db()  # 재시작해도 중복으로 넣지 않는다
-    assert store_names(temp_db) == ["브루밍 카페"]
+    database.init_db()  # 재시작해도 오류 없이 멱등 실행된다
+    assert store_names(temp_db) == []
 
 
 def test_seed_loads_on_fresh_db(temp_db):
