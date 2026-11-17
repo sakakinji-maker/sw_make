@@ -12,7 +12,7 @@ from app.presentation.routers import customer, inquiry, marketing, owner, reserv
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     init_db()
-    seed()   # 데이터가 없을 때만 샘플 데이터를 넣는다 (있으면 건너뜀)
+    seed()  # 데이터가 없을 때만 샘플 데이터를 넣는다 (있으면 건너뜀)
     yield
 
 
