@@ -27,8 +27,6 @@ CHANNEL_LABELS = {
 
 router = APIRouter(prefix="/owner", tags=["owner"])
 
-# ── 의존성 헬퍼 ───────────────────────────────────────────
-
 SessionDep = Annotated[Session, Depends(get_session)]
 
 
@@ -38,19 +36,13 @@ def get_store_service(session: SessionDep) -> StoreService:
 
 StoreSvcDep = Annotated[StoreService, Depends(get_store_service)]
 
-
-# ── 대시보드 ──────────────────────────────────────────────
-
-STORE_ID = 1  # 단일 매장 시스템 (추후 인증 연동 시 세션에서 추출)
+STORE_ID = 1
 
 
 @router.get("", response_class=HTMLResponse)
 def dashboard(request: Request, session: SessionDep) -> HTMLResponse:
     """오늘부터 이후의 요청·확정 예약, 미응답 문의 수, 저장된 콘텐츠 수와 최근 콘텐츠를 보여준다 (F-05)."""
     today = datetime.now().date()
-
-    # 오늘 날짜를 포함해 이후 날짜의 요청·확정 예약만 표시한다.
-    # 방문완료·취소·노쇼는 앞으로 방문할 예약이 아니므로 제외한다.
     all_reservations = ReservationService(session).list_for_store(STORE_ID)
     reservations = sorted(
         (
@@ -59,22 +51,18 @@ def dashboard(request: Request, session: SessionDep) -> HTMLResponse:
         ),
         key=lambda r: r.reserved_at,
     )
-
     status_counts = {
         "요청": sum(r.status == "요청" for r in reservations),
         "확정": sum(r.status == "확정" for r in reservations),
     }
-
     inquiries = InquiryRepository(session).list_by_store(STORE_ID)
     unanswered = sum(q.status == "미응답" for q in inquiries)
-
     contents_count = (
         session.query(MarketingContent)
         .filter(MarketingContent.store_id == STORE_ID)
         .count()
     )
     contents = list_marketing_contents(session, STORE_ID, limit=5)
-
     return templates.TemplateResponse(
         request,
         "owner/dashboard.html",
@@ -88,9 +76,6 @@ def dashboard(request: Request, session: SessionDep) -> HTMLResponse:
             "channel_labels": CHANNEL_LABELS,
         },
     )
-
-
-# ── HTML 화면 라우터 (F-01) ───────────────────────────────
 
 
 @router.get("/store", response_class=HTMLResponse)
@@ -192,9 +177,6 @@ def delete_faq_form(faq_id: int, svc: StoreSvcDep):
     return RedirectResponse(url="/owner/store#tab-faq", status_code=status.HTTP_303_SEE_OTHER)
 
 
-# ── 홍보 문구 화면 (F-04) ────────────────────────────────
-
-
 @router.get("/marketing", response_class=HTMLResponse)
 def marketing_page(request: Request, session: SessionDep) -> HTMLResponse:
     """홍보 문구 생성 화면."""
@@ -225,7 +207,6 @@ def generate_marketing(
     keywords = [k.strip() for k in keywords_raw.split(",") if k.strip()]
     store = session.get(Store, STORE_ID)
     menus = session.query(MenuItem).filter(MenuItem.store_id == STORE_ID).all()
-
     service = MarketingService(get_ai_client())
     result = service.generate(
         channel=channel,
@@ -234,7 +215,6 @@ def generate_marketing(
         store=store,
         menus=menus,
     )
-
     if not result.error:
         try:
             service.save(
@@ -247,7 +227,6 @@ def generate_marketing(
             )
         except ValueError:
             pass
-
     contents = service.list_saved(session=session, store_id=STORE_ID)
     return templates.TemplateResponse(
         request,
@@ -268,9 +247,6 @@ def delete_marketing(content_id: int, session: SessionDep):
     service = MarketingService(get_ai_client())
     service.delete(session=session, content_id=content_id, store_id=STORE_ID)
     return RedirectResponse(url="/owner/marketing", status_code=status.HTTP_303_SEE_OTHER)
-
-
-# ── Pydantic 스키마 (F-01) ────────────────────────────────
 
 
 class StoreUpdate(BaseModel):
@@ -308,9 +284,6 @@ class FAQUpdate(BaseModel):
     answer: str | None = None
 
 
-# ── 매장 정보 엔드포인트 (F-01-1) ─────────────────────────
-
-
 @router.get("/stores/{store_id}")
 def get_store(store_id: int, svc: StoreSvcDep):
     """매장 정보 조회."""
@@ -339,9 +312,6 @@ def update_store(store_id: int, body: StoreUpdate, svc: StoreSvcDep):
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
     return {"id": store.id, "name": store.name}
-
-
-# ── 메뉴 엔드포인트 (F-01-2) ──────────────────────────────
 
 
 @router.get("/stores/{store_id}/menus")
@@ -392,9 +362,6 @@ def delete_menu(store_id: int, menu_id: int, svc: StoreSvcDep):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
-# ── FAQ 엔드포인트 (F-01-3) ────────────────────────────────
-
-
 @router.get("/stores/{store_id}/faqs")
 def list_faqs(store_id: int, svc: StoreSvcDep):
     """FAQ 목록 조회."""
@@ -426,8 +393,9 @@ def update_faq(store_id: int, faq_id: int, body: FAQUpdate, svc: StoreSvcDep):
 
 
 @router.delete("/stores/{store_id}/faqs/{faq_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_faq(faq_id: int, session: SessionDep):
+def delete_faq(store_id: int, faq_id: int, svc: StoreSvcDep):
     """FAQ 삭제."""
-    service = MarketingService(get_ai_client())
-    service.delete(session=session, content_id=content_id, store_id=STORE_ID)
-    return RedirectResponse(url="/owner/marketing", status_code=status.HTTP_303_SEE_OTHER)
+    try:
+        svc.delete_faq(store_id, faq_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
