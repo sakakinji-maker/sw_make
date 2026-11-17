@@ -3,12 +3,13 @@
 
 import json
 from dataclasses import asdict, dataclass
+from datetime import datetime
 
 from app.adapters.ai import AIClient, AIClientError
 from app.models.models import FAQ, Inquiry, MenuItem, Store
 from app.repositories.inquiry_repository import InquiryRepository
 from app.services.inquiry.fact_checker import FactChecker, Mismatch
-from app.services.inquiry.schemas import InquiryCreate
+from app.services.inquiry.schemas import AnswerSubmit, InquiryCreate, InquiryLookup
 
 SYSTEM_PROMPT = (
     "당신은 소상공인 매장의 고객 문의 답변을 돕는 도우미입니다. "
@@ -25,11 +26,36 @@ class InquiryNotFoundError(Exception):
     """존재하지 않는 문의를 찾을 때."""
 
 
+ANSWERED = "답변완료"
+
+
 @dataclass
 class DraftResult:
     draft: str | None
     mismatches: list[Mismatch]
     error: str | None = None  # AI 실패 시 안내 문구 (F-03-5)
+
+
+@dataclass(frozen=True)
+class CustomerView:
+    """고객 화면에 보여 줄 문의 한 건. 답변은 점주가 확정한 것만 담는다. (F-03-6)"""
+
+    id: int
+    store_name: str
+    received_at: datetime
+    content: str
+    answer: str | None
+
+    @classmethod
+    def of(cls, inquiry: Inquiry) -> "CustomerView":
+        answered = inquiry.status == ANSWERED and bool(inquiry.final_answer)
+        return cls(
+            id=inquiry.id,
+            store_name=inquiry.store.name,
+            received_at=inquiry.received_at,
+            content=inquiry.content,
+            answer=inquiry.final_answer if answered else None,
+        )
 
 
 class InquiryService:
@@ -44,6 +70,16 @@ class InquiryService:
         customer = self.repo.find_or_create_customer(data.name, data.phone)
         inquiry = Inquiry(store_id=data.store_id, customer=customer, content=data.content)
         return self.repo.add(inquiry)
+
+    # ----- F-03-6 고객 답변 확인 -----
+    # AI-assisted (Claude) — 정회성 검토 완료
+    def find_for_customer(self, data: InquiryLookup) -> list[CustomerView]:
+        """고객 본인의 문의와 '점주가 확정한' 답변만 돌려준다.
+
+        AI 초안(ai_draft)은 점주 검토 전이라 사실 오류가 있을 수 있어 고객에게 보이지 않는다.
+        화면이 실수로 초안을 꺼내 쓰지 않도록 Inquiry 대신 필요한 값만 담은 객체를 넘긴다.
+        """
+        return [CustomerView.of(i) for i in self.repo.list_by_phone(data.digits)]
 
     # ----- F-03-2, F-03-3 AI 초안 생성과 DB 대조 -----
     def generate_draft(self, inquiry_id: int) -> DraftResult:
@@ -92,11 +128,34 @@ class InquiryService:
         except AIClientError as e:
             return DraftResult(draft=None, mismatches=[], error=f"AI 초안 생성 실패: {e}")
 
-        checker = FactChecker(
+        checker = self._checker(store, menus)
+        return DraftResult(draft=draft, mismatches=checker.check(draft, quoted=inquiry.content))
+
+    # ----- F-03-4 점주 확정(발송 완료), F-03-5 직접 작성 -----
+    # AI-assisted (Claude) — 정회성 검토 완료
+    def finalize(self, inquiry_id: int, data: AnswerSubmit) -> Inquiry:
+        """점주가 확정한 답변을 저장하고 '답변완료'로 바꾼다.
+
+        AI 초안이 없어도(AI 실패, F-03-5) 점주가 직접 쓴 답변으로 확정할 수 있다.
+        AI 원본(ai_draft)은 덮어쓰지 않는다. 검증 보고서에서 원본과 최종본을 비교하기 때문이다.
+        이미 답변완료여도 다시 저장할 수 있다(오타 수정 등).
+        """
+        inquiry = self.get(inquiry_id)
+        inquiry.final_answer = data.answer
+        inquiry.status = ANSWERED
+        self.repo.save()
+        return inquiry
+
+    def check_answer(self, inquiry: Inquiry, text: str) -> list[Mismatch]:
+        """점주가 고친 최종 답변도 같은 기준으로 DB와 대조한다. (발송 전 마지막 확인)"""
+        store = inquiry.store
+        return self._checker(store, store.menu_items).check(text, quoted=inquiry.content)
+
+    @staticmethod
+    def _checker(store: Store, menus: list[MenuItem]) -> FactChecker:
+        return FactChecker(
             menu_prices={m.name: m.price for m in menus},
             open_time=store.open_time,
             close_time=store.close_time,
+            closed_days=store.closed_days,
         )
-        return DraftResult(draft=draft, mismatches=checker.check(draft))
-
-    # TODO(정회성, 13주차): 점주 수정 → 발송 완료(상태 '답변완료', final_answer 저장) (F-03-4)
