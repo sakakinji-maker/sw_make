@@ -2,7 +2,7 @@
 """F-02 예약 신청·조회·변경·취소·상태 처리 테스트 (12주차).
 
 메모리 DB에 가상 데이터를 넣고, '지금'을 2026-11-10(화) 09:00으로 고정해 서비스와 화면을 확인한다.
-온기 카페: 09:00~21:00, 월 휴무, 시간당 10명 / 가상 데이터에 11/15 10시 대 10명이 이미 차 있음.
+브루밍 카페: 09:00~21:00, 월 휴무, 시간당 10명 / 가상 데이터에 11/15 10시 대 10명이 이미 차 있음.
 """
 
 from datetime import date, datetime, time
@@ -58,7 +58,7 @@ def service(session) -> ReservationService:
 
 
 def cafe(session) -> Store:
-    return session.query(Store).filter_by(name="온기 카페").one()
+    return session.query(Store).filter_by(name="브루밍 카페").one()
 
 
 def booking(store_id: int, **overrides) -> ReservationCreate:
@@ -276,7 +276,7 @@ def test_submit_and_lookup(client, session):
     res = client.post("/reservations", data=form(cafe(session).id))
     assert res.status_code == 200 and "예약을 신청했습니다" in res.text
     res = client.post("/reservations/lookup", data={"phone": PHONE})
-    assert "온기 카페" in res.text and "2026-11-11 12:00" in res.text
+    assert "브루밍 카페" in res.text and "2026-11-11 12:00" in res.text
 
 
 def test_submit_rejected_shows_reason(client, session):

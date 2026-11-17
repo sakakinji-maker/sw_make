@@ -1,48 +1,25 @@
 [
   {
     "key": "cafe",
-    "name": "온기 카페",
+    "name": "브루밍 카페",
     "category": "카페",
-    "address": "서울시 가상구 온기로 12",
+    "address": "서울시 마포구 연남로 47-3 1층",
     "open_time": "09:00",
     "close_time": "21:00",
     "closed_days": "월",
-    "phone": "02-000-1111",
+    "phone": "02-333-7742",
     "capacity_per_hour": 10,
     "menu": [
-      {"name": "아메리카노", "price": 4500, "description": "산미가 적은 고소한 원두"},
-      {"name": "카페라떼", "price": 5000, "description": "에스프레소와 우유"},
-      {"name": "바닐라라떼", "price": 5500, "description": "직접 만든 바닐라 시럽"},
-      {"name": "카푸치노", "price": 5000, "description": "우유 거품을 듬뿍"},
-      {"name": "밤라떼", "price": 6000, "description": "가을 시즌 메뉴, 국산 밤 페이스트"},
-      {"name": "얼그레이 밀크티", "price": 5500, "description": "얼그레이를 우유에 우려낸 밀크티"},
-      {"name": "레몬에이드", "price": 5500, "description": "생레몬 청으로 만든 에이드"},
-      {"name": "크루아상", "price": 3800, "description": "매일 아침 굽는 버터 크루아상"},
-      {"name": "치즈케이크", "price": 6500, "description": "꾸덕한 뉴욕 치즈케이크 한 조각"},
-      {"name": "초코 스콘", "price": 3500, "description": "다크 초콜릿 칩 스콘"}
-    ]
-  },
-  {
-    "key": "salon",
-    "name": "결 헤어",
-    "category": "미용실",
-    "address": "서울시 가상구 결로 34, 2층",
-    "open_time": "10:00",
-    "close_time": "20:00",
-    "closed_days": "화",
-    "phone": "02-000-2222",
-    "capacity_per_hour": 3,
-    "menu": [
-      {"name": "남성 커트", "price": 18000, "description": "샴푸 포함"},
-      {"name": "여성 커트", "price": 25000, "description": "샴푸·드라이 포함"},
-      {"name": "앞머리 커트", "price": 5000, "description": "앞머리만"},
-      {"name": "일반 펌", "price": 70000, "description": "기장 추가 요금 없음"},
-      {"name": "셋팅 펌", "price": 120000, "description": "열을 이용한 웨이브 펌"},
-      {"name": "다운펌", "price": 30000, "description": "옆머리·뒷머리 뜨는 부분"},
-      {"name": "전체 염색", "price": 80000, "description": "기장 추가 요금 없음"},
-      {"name": "뿌리 염색", "price": 50000, "description": "새로 자란 뿌리 부분만"},
-      {"name": "클리닉", "price": 40000, "description": "손상모 영양 관리"},
-      {"name": "드라이", "price": 15000, "description": "스타일링 드라이"}
+      {"name": "아메리카노", "price": 4500, "description": "에티오피아 예가체프 싱글오리진, 깔끔하고 균형 잡힌 산미"},
+      {"name": "카페라떼", "price": 5500, "description": "국내산 신선 우유로 만든 부드러운 라떼"},
+      {"name": "밤라떼", "price": 6000, "description": "국산 밤 페이스트와 에스프레소의 고소하고 달콤한 조화"},
+      {"name": "말차라떼", "price": 6000, "description": "일본산 1등급 말차 파우더로 만든 진한 녹차라떼"},
+      {"name": "딸기스무디", "price": 6500, "description": "생딸기와 그릭요거트로 만든 과일 스무디"},
+      {"name": "자몽에이드", "price": 6000, "description": "자몽 착즙과 탄산수의 상큼한 에이드"},
+      {"name": "핫초코", "price": 5500, "description": "벨기에산 다크초콜릿으로 만든 진한 핫초코"},
+      {"name": "크루아상", "price": 4500, "description": "매일 아침 직접 굽는 버터 크루아상"},
+      {"name": "치즈케이크", "price": 7000, "description": "브루밍 시그니처 뉴욕 스타일 치즈케이크 (하루 20개 한정)"},
+      {"name": "브라우니", "price": 5000, "description": "촉촉하고 진한 벨기에 초콜릿 브라우니"}
     ]
   }
 ]

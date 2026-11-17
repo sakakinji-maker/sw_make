@@ -46,7 +46,7 @@ def service_with(session, ai=None) -> InquiryService:
 
 
 def cafe(session) -> Store:
-    return session.query(Store).filter_by(name="온기 카페").one()
+    return session.query(Store).filter_by(name="브루밍 카페").one()
 
 
 def valid_form(store_id: int, **overrides) -> dict:
@@ -159,7 +159,7 @@ def client(session_factory):
 
 def test_customer_form_lists_stores(client):
     page = client.get("/inquiries/new")
-    assert page.status_code == 200 and "온기 카페" in page.text and "결 헤어" in page.text
+    assert page.status_code == 200 and "브루밍 카페" in page.text
 
 
 def test_customer_submit_success(client):
@@ -201,7 +201,7 @@ def test_owner_draft_ai_failure_message(client):
 
 
 def test_generate_draft_detects_wrong_closed_day(session):
-    ai = MockAIClient(fixed_response="온기 카페는 화요일에 쉽니다.")  # 실제 휴무는 월요일
+    ai = MockAIClient(fixed_response="브루밍 카페는 화요일에 쉽니다.")  # 실제 휴무는 월요일
     q = first_inquiry(session)
     result = service_with(session, ai).generate_draft(q.id)
     assert [(m.kind, m.found) for m in result.mismatches] == [("휴무일", "화요일")]
@@ -289,7 +289,7 @@ def test_owner_answered_shows_warning_for_wrong_final(client):
 
 # ---------- F-03-6 고객 답변 확인 ----------
 # AI-assisted (Claude) — 정회성 검토 완료
-# 가상 데이터 Q01(id=1): 온기 카페, 김하늘 010-0000-0101, "아메리카노 한 잔 얼마예요?"
+# 가상 데이터 1번: 브루밍 카페, 010-0000-0101, "아메리카노 한 잔 얼마예요?"
 Q01_PHONE = "010-0000-0101"
 
 
@@ -324,13 +324,13 @@ def test_lookup_accepts_phone_without_hyphen(client):
 
 def test_lookup_shows_only_own_inquiries(client):
     page = lookup(client, Q01_PHONE)
-    assert "가을 시즌 밤라떼" not in page.text  # Q02는 다른 고객(010-0000-0102)
+    assert "카페라떼 가격이 어떻게 되나요?" not in page.text  # 2번은 다른 고객(010-1111-0002)
 
 
 def test_lookup_new_inquiry_after_submit(client):
     client.post("/inquiries", data=valid_form(1, phone="010-5555-6666", content="단체석 있나요?"))
     page = lookup(client, "010-5555-6666")
-    assert "단체석 있나요?" in page.text and "온기 카페" in page.text
+    assert "단체석 있나요?" in page.text and "브루밍 카페" in page.text
 
 
 def test_lookup_no_result_and_invalid_phone(client):
