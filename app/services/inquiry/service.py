@@ -3,12 +3,13 @@
 
 import json
 from dataclasses import asdict, dataclass
+from datetime import datetime
 
 from app.adapters.ai import AIClient, AIClientError
 from app.models.models import FAQ, Inquiry, MenuItem, Store
 from app.repositories.inquiry_repository import InquiryRepository
 from app.services.inquiry.fact_checker import FactChecker, Mismatch
-from app.services.inquiry.schemas import AnswerSubmit, InquiryCreate
+from app.services.inquiry.schemas import AnswerSubmit, InquiryCreate, InquiryLookup
 
 SYSTEM_PROMPT = (
     "당신은 소상공인 매장의 고객 문의 답변을 돕는 도우미입니다. "
@@ -35,6 +36,28 @@ class DraftResult:
     error: str | None = None  # AI 실패 시 안내 문구 (F-03-5)
 
 
+@dataclass(frozen=True)
+class CustomerView:
+    """고객 화면에 보여 줄 문의 한 건. 답변은 점주가 확정한 것만 담는다. (F-03-6)"""
+
+    id: int
+    store_name: str
+    received_at: datetime
+    content: str
+    answer: str | None
+
+    @classmethod
+    def of(cls, inquiry: Inquiry) -> "CustomerView":
+        answered = inquiry.status == ANSWERED and bool(inquiry.final_answer)
+        return cls(
+            id=inquiry.id,
+            store_name=inquiry.store.name,
+            received_at=inquiry.received_at,
+            content=inquiry.content,
+            answer=inquiry.final_answer if answered else None,
+        )
+
+
 class InquiryService:
     def __init__(self, ai_client: AIClient, repository: InquiryRepository | None = None) -> None:
         self.ai = ai_client
@@ -47,6 +70,16 @@ class InquiryService:
         customer = self.repo.find_or_create_customer(data.name, data.phone)
         inquiry = Inquiry(store_id=data.store_id, customer=customer, content=data.content)
         return self.repo.add(inquiry)
+
+    # ----- F-03-6 고객 답변 확인 -----
+    # AI-assisted (Claude) — 정회성 검토 완료
+    def find_for_customer(self, data: InquiryLookup) -> list[CustomerView]:
+        """고객 본인의 문의와 '점주가 확정한' 답변만 돌려준다.
+
+        AI 초안(ai_draft)은 점주 검토 전이라 사실 오류가 있을 수 있어 고객에게 보이지 않는다.
+        화면이 실수로 초안을 꺼내 쓰지 않도록 Inquiry 대신 필요한 값만 담은 객체를 넘긴다.
+        """
+        return [CustomerView.of(i) for i in self.repo.list_by_phone(data.digits)]
 
     # ----- F-03-2, F-03-3 AI 초안 생성과 DB 대조 -----
     def generate_draft(self, inquiry_id: int) -> DraftResult:

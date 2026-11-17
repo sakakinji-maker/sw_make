@@ -91,6 +91,10 @@
 | TC-03-27 | F-03-3 | 예외 | 한글 시각 표기 ("저녁 10시") | 시각 불일치 경고, "1시간"은 무시 | `tests/test_fact_checker.py::test_korean_time_expression`, `::test_hours_duration_is_not_time` | ✅ |
 | TC-03-28 | F-03-3 | 정상·예외 | "월요일을 제외하고 매일 영업" / "화요일 빼고 매일 영업" | 휴무일과 같으면 통과, 다르면 경고 | `tests/test_fact_checker.py::test_except_closed_day_sentence` | ✅ |
 | TC-03-29 | 검증 | 정상 | 오류 삽입 초안 10건 + 정상 초안 10건 (기획서 12절) | 탐지율 100%, 오탐률 0% | `tests/test_verification.py::test_injection_experiment_detects_all_and_no_false_positive` | ✅ |
+| TC-03-30 | F-03-6 | 정상 | 고객이 연락처로 내 문의 조회 (답변 전) | 문의 내용과 "답변 대기" 표시 | `tests/test_inquiry_flow.py::test_lookup_unanswered_shows_waiting`, `::test_lookup_new_inquiry_after_submit` | ✅ |
+| TC-03-31 | F-03-6 | 정상 | 점주가 발송 완료한 뒤 고객 조회 | 점주가 확정한 답변과 "답변 완료" 표시 | `tests/test_inquiry_flow.py::test_lookup_shows_confirmed_answer` | ✅ |
+| TC-03-32 | F-03-6 | 예외 | AI 초안만 있고 점주가 확정하지 않음 | 초안 내용이 고객에게 보이지 않음 | `tests/test_inquiry_flow.py::test_lookup_hides_unconfirmed_ai_draft`, `::test_customer_view_has_no_ai_draft` | ✅ |
+| TC-03-33 | F-03-6 | 정상·예외 | 하이픈 없는 연락처 / 다른 사람 연락처 / 문의 없는 연락처 / 형식 오류 | 같은 고객으로 조회, 남의 문의는 안 보임, "문의가 없습니다", 한국어 오류 | `tests/test_inquiry_flow.py::test_lookup_accepts_phone_without_hyphen`, `::test_lookup_shows_only_own_inquiries`, `::test_lookup_no_result_and_invalid_phone` | ✅ |
 
 ### AI Adapter (정회성)
 

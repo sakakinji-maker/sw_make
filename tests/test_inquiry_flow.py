@@ -18,7 +18,7 @@ from app.main import app
 from app.models.models import Inquiry, Store
 from app.presentation.routers.inquiry import get_ai
 from app.repositories.inquiry_repository import InquiryRepository
-from app.services.inquiry.schemas import AnswerSubmit, InquiryCreate, korean_errors
+from app.services.inquiry.schemas import AnswerSubmit, InquiryCreate, InquiryLookup, korean_errors
 from app.services.inquiry.service import InquiryNotFoundError, InquiryService, StoreNotFoundError
 
 
@@ -285,3 +285,70 @@ def test_owner_ai_failure_then_write_directly(client):
 def test_owner_answered_shows_warning_for_wrong_final(client):
     page = client.post("/owner/inquiries/1/answer", data={"answer": "3,000원입니다."})
     assert "저장된 답변에 매장 정보와 다른 내용" in page.text
+
+
+# ---------- F-03-6 고객 답변 확인 ----------
+# AI-assisted (Claude) — 정회성 검토 완료
+# 가상 데이터 Q01(id=1): 온기 카페, 김하늘 010-0000-0101, "아메리카노 한 잔 얼마예요?"
+Q01_PHONE = "010-0000-0101"
+
+
+def lookup(client, phone: str):
+    return client.post("/inquiries/lookup", data={"phone": phone})
+
+
+def test_lookup_unanswered_shows_waiting(client):
+    page = lookup(client, Q01_PHONE)
+    assert page.status_code == 200
+    assert "아메리카노 한 잔 얼마예요?" in page.text and "답변 대기" in page.text
+
+
+def test_lookup_hides_unconfirmed_ai_draft(client):
+    # 점주가 확정하기 전의 AI 초안(틀린 가격 4,000원)이 고객에게 보이면 안 된다
+    client.post("/owner/inquiries/1/draft")
+    page = lookup(client, Q01_PHONE)
+    assert "4,000원" not in page.text and "답변 대기" in page.text
+
+
+def test_lookup_shows_confirmed_answer(client):
+    client.post("/owner/inquiries/1/draft")
+    client.post("/owner/inquiries/1/answer", data={"answer": "아메리카노는 4,500원입니다."})
+    page = lookup(client, Q01_PHONE)
+    assert "답변 완료" in page.text and "아메리카노는 4,500원입니다." in page.text
+    assert "4,000원" not in page.text
+
+
+def test_lookup_accepts_phone_without_hyphen(client):
+    assert "아메리카노 한 잔 얼마예요?" in lookup(client, "01000000101").text
+
+
+def test_lookup_shows_only_own_inquiries(client):
+    page = lookup(client, Q01_PHONE)
+    assert "가을 시즌 밤라떼" not in page.text  # Q02는 다른 고객(010-0000-0102)
+
+
+def test_lookup_new_inquiry_after_submit(client):
+    client.post("/inquiries", data=valid_form(1, phone="010-5555-6666", content="단체석 있나요?"))
+    page = lookup(client, "010-5555-6666")
+    assert "단체석 있나요?" in page.text and "온기 카페" in page.text
+
+
+def test_lookup_no_result_and_invalid_phone(client):
+    assert "남긴 문의가 없습니다" in lookup(client, "010-1111-2222").text
+    page = lookup(client, "abc")
+    assert page.status_code == 400 and "연락처 형식이 올바르지 않습니다" in page.text
+
+
+def test_lookup_page_and_links(client):
+    assert client.get("/inquiries/lookup").status_code == 200
+    assert "/inquiries/lookup" in client.get("/").text
+    done = client.post("/inquiries", data=valid_form(1))
+    assert "내 문의 확인" in done.text
+
+
+def test_customer_view_has_no_ai_draft(session):
+    # 화면이 실수로 초안을 쓰지 않도록 고객용 객체에는 초안 필드 자체가 없다
+    service = service_with(session, MockAIClient(fixed_response="초안입니다."))
+    service.generate_draft(1)
+    (view,) = service.find_for_customer(InquiryLookup(phone=Q01_PHONE))
+    assert view.answer is None and not hasattr(view, "ai_draft")

@@ -4,7 +4,13 @@
 <div class="card card-body">
   <h1 class="h4">문의가 접수되었습니다</h1>
   <p class="mb-1">접수 번호: <strong>{{ inquiry.id }}</strong></p>
-  <p class="text-muted">매장에서 확인 후 {{ inquiry.customer.phone }}(으)로 답변드립니다.</p>
-  <div><a href="/" class="btn btn-outline-secondary">처음으로</a></div>
+  <p class="text-muted">매장에서 답변을 등록하면 '내 문의'에서 연락처({{ inquiry.customer.phone }})로 확인할 수 있습니다.</p>
+  <div class="d-flex gap-2">
+    <form method="post" action="/inquiries/lookup">
+      <input type="hidden" name="phone" value="{{ inquiry.customer.phone }}">
+      <button class="btn btn-primary">내 문의 확인</button>
+    </form>
+    <a href="/" class="btn btn-outline-secondary">처음으로</a>
+  </div>
 </div>
 {% endblock %}
