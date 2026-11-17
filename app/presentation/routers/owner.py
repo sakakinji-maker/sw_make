@@ -12,7 +12,6 @@ from app.adapters.ai import get_ai_client
 from app.db.database import get_session
 from app.models.models import MenuItem, Store
 from app.presentation.templating import templates
-from app.services.dashboard.service import DashboardService
 from app.services.marketing.service import MarketingService
 from app.services.marketing.strategies import available_channels
 from app.services.store.service import StoreService
@@ -43,19 +42,11 @@ STORE_ID = 1  # 단일 매장 시스템 (추후 인증 연동 시 세션에서 �
 
 
 @router.get("", response_class=HTMLResponse)
-def dashboard(request: Request, session: SessionDep) -> HTMLResponse:
-    """점주 대시보드에 예약·문의·홍보 콘텐츠 현황을 전달한다 (F-05)."""
-    data = DashboardService(session).get_dashboard(STORE_ID)
-    context = {
-        "today": data.today,
-        "reservations": data.reservations,
-        "status_counts": data.status_counts,
-        "unanswered": data.unanswered,
-        "contents": data.contents,
-        "contents_count": data.contents_count,
-        "channel_labels": CHANNEL_LABELS,
-    }
-    return templates.TemplateResponse(request, "owner/dashboard.html", context)
+def dashboard(request: Request) -> HTMLResponse:
+    """점주 대시보드 (F-05). TODO(전지호): 오늘 예약·미응답 문의·최근 콘텐츠 조회."""
+    return templates.TemplateResponse(
+        request, "owner/dashboard.html", {"reservations": [], "unanswered": 0, "contents": []}
+    )
 
 
 # ── HTML 화면 라우터 (F-01) ───────────────────────────────
@@ -228,7 +219,12 @@ def generate_marketing(
             "channel_labels": CHANNEL_LABELS,
             "contents": contents,
             "result": result,
-            "form": {"channel": channel, "target": target, "keywords_raw": keywords_raw, "extra_note": extra_note},
+            "form": {
+                "channel": channel,
+                "target": target,
+                "keywords_raw": keywords_raw,
+                "extra_note": extra_note,
+            },
         },
     )
 
