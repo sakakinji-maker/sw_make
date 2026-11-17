@@ -7,7 +7,7 @@ from app.models.models import FAQ, Inquiry, MenuItem, Store
 from app.services.inquiry.service import InquiryService
 
 store = Store(
-    name="온기 카페",
+    name="브루밍 카페",
     open_time=time(9, 0),
     close_time=time(21, 0),
     closed_days="월",

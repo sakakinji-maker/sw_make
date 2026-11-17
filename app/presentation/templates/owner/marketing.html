@@ -56,6 +56,11 @@
             </div>
             <input type="hidden" name="keywords_raw" id="keywords_hidden" value="{{ form.keywords_raw or '' }}">
           </div>
+          <div class="mb-3">
+            <label class="form-label">추가 내용 <small class="text-muted">(선택)</small></label>
+            <textarea name="extra_note" class="form-control" rows="2"
+              placeholder="예) 오늘 오픈 1주년, 비 오는 날 할인 행사, 신메뉴 말차라떼 출시…">{{ form.extra_note or '' }}</textarea>
+          </div>
           <button class="btn btn-primary w-100">✨ 문구 생성</button>
         </form>
       </div>

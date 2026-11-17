@@ -5,12 +5,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.db.database import init_db
+from app.db.seed import seed
 from app.presentation.routers import customer, inquiry, marketing, owner, reservation
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     init_db()
+    seed()  # 데이터 없을 때만 자동 적재 (중복 삽입 없음)
     yield
 
 

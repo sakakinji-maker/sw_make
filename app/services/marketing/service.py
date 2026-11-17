@@ -40,11 +40,12 @@ class MarketingService:
         keywords: list[str],
         store: Store | None = None,
         menus: list[MenuItem] | None = None,
+        extra_note: str = "",
     ) -> ContentResult:
         strategy = get_strategy(channel)
 
         try:
-            text = self.ai.generate(strategy.build_prompt(target, keywords))
+            text = self.ai.generate(strategy.build_prompt(target, keywords, extra_note))
         except AIClientError as e:
             return ContentResult(
                 text=None,
