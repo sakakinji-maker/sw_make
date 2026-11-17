@@ -227,7 +227,12 @@ def generate_marketing(
             "channel_labels": CHANNEL_LABELS,
             "contents": contents,
             "result": result,
-            "form": {"channel": channel, "target": target, "keywords_raw": keywords_raw, "extra_note": extra_note},
+            "form": {
+                "channel": channel,
+                "target": target,
+                "keywords_raw": keywords_raw,
+                "extra_note": extra_note,
+            },
         },
     )
 
