@@ -28,7 +28,15 @@ class ChannelStrategy(ABC):
             f"- 키워드: {', '.join(keywords) if keywords else '없음'}\n"
             f"- 길이: {self.min_length}~{self.max_length}자\n"
             f"- 해시태그: {self.min_hashtags}~{self.max_hashtags}개\n"
-            f"- 어조: {self.tone}"
+            f"- 어조: {self.tone}\n"
+            "- 반드시 자연스러운 한국어로 작성하고, 중국어·일본어 등 외국어 문자를 섞지 마세요.\n"
+            "- 고객을 존중하는 친절하고 정중한 말투를 사용하세요.\n"
+            "- 비꼬거나 무례한 표현, 고객을 불편하게 할 수 있는 농담은 사용하지 마세요.\n"
+            "- 홍보 대상과 채널에 어울리는 표현을 사용하세요.\n"
+            "- 어색하거나 문맥에 맞지 않는 문장은 쓰지 마세요.\n"
+            "- 매장 정보에 없는 할인, 시설, 서비스, 영업 정보를\n"
+            "  사실처럼 만들어내지 마세요.\n"
+            "- 최종 결과에는 안내나 해설 없이 홍보 문구만 출력하세요."
         )
 
     def check(self, text: str) -> list[str]:
