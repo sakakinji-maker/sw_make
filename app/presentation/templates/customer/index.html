@@ -1,27 +1,107 @@
 {% extends "base.html" %}
-{% block title %}예약·문의{% endblock %}
+{% block title %}{{ store.name if store else '매장 안내' }}{% endblock %}
 {% block content %}
+
+{# ── 매장 헤더 ────────────────────────────────────────────── #}
+{% if store %}
+<div class="card mb-4">
+  <div class="card-body">
+    <div class="d-flex align-items-center gap-3 mb-2">
+      <span class="fs-3">☕</span>
+      <div>
+        <h1 class="h4 mb-0">{{ store.name }}</h1>
+        {% if store.category %}<span class="badge text-bg-secondary">{{ store.category }}</span>{% endif %}
+      </div>
+    </div>
+    <div class="row g-2 mt-1 small text-muted">
+      {% if store.address %}
+      <div class="col-sm-6">
+        <span class="me-1">📍</span>{{ store.address }}
+      </div>
+      {% endif %}
+      {% if store.phone %}
+      <div class="col-sm-6">
+        <span class="me-1">📞</span>{{ store.phone }}
+      </div>
+      {% endif %}
+      {% if store.open_time and store.close_time %}
+      <div class="col-sm-6">
+        <span class="me-1">🕐</span>영업시간 {{ store.open_time.strftime('%H:%M') }} – {{ store.close_time.strftime('%H:%M') }}
+      </div>
+      {% endif %}
+      {% if store.closed_days %}
+      <div class="col-sm-6">
+        <span class="me-1">🗓️</span>정기휴무 {{ store.closed_days }}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% else %}
 <h1 class="h4 mb-4">예약 및 문의</h1>
+{% endif %}
+
+{# ── 메뉴 ─────────────────────────────────────────────────── #}
+{% if menus %}
+<h2 class="h6 text-muted text-uppercase letter-spacing-1 mb-3">메뉴</h2>
+<div class="row g-2 mb-4">
+  {% for m in menus %}
+  <div class="col-6 col-md-4 col-lg-3">
+    <div class="card card-body p-2 h-100">
+      <div class="fw-semibold small mb-1">{{ m.name }}</div>
+      {% if m.description %}
+      <div class="text-muted" style="font-size:0.78rem;">{{ m.description }}</div>
+      {% endif %}
+      <div class="mt-auto pt-1 fw-bold small text-primary">{{ "{:,}".format(m.price) }}원</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{# ── FAQ ──────────────────────────────────────────────────── #}
+{% if faqs %}
+<h2 class="h6 text-muted text-uppercase letter-spacing-1 mb-3">자주 묻는 질문</h2>
+<div class="accordion mb-4" id="faqAccordion">
+  {% for faq in faqs %}
+  <div class="accordion-item">
+    <h3 class="accordion-header">
+      <button class="accordion-button collapsed small" type="button"
+        data-bs-toggle="collapse" data-bs-target="#faq{{ faq.id }}">
+        {{ faq.question }}
+      </button>
+    </h3>
+    <div id="faq{{ faq.id }}" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+      <div class="accordion-body small text-muted" style="white-space:pre-wrap;">{{ faq.answer }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{# ── 예약·문의 버튼 ───────────────────────────────────────── #}
+<h2 class="h6 text-muted text-uppercase letter-spacing-1 mb-3">예약 &amp; 문의</h2>
 <div class="row g-3">
   <div class="col-md-6 col-lg-3"><div class="card card-body h-100">
-    <h2 class="h6">예약하기</h2>
+    <h3 class="h6">예약하기</h3>
     <p class="text-muted small">날짜·시간·인원을 골라 예약을 신청합니다.</p>
     <a href="/reservations/new" class="btn btn-primary mt-auto">예약 신청</a>
   </div></div>
   <div class="col-md-6 col-lg-3"><div class="card card-body h-100">
-    <h2 class="h6">내 예약</h2>
+    <h3 class="h6">내 예약</h3>
     <p class="text-muted small">연락처로 예약을 조회하고 변경·취소합니다.</p>
     <a href="/reservations/lookup" class="btn btn-outline-primary mt-auto">예약 조회</a>
   </div></div>
   <div class="col-md-6 col-lg-3"><div class="card card-body h-100">
-    <h2 class="h6">문의하기</h2>
+    <h3 class="h6">문의하기</h3>
     <p class="text-muted small">매장에 궁금한 점을 남깁니다.</p>
     <a href="/inquiries/new" class="btn btn-primary mt-auto">문의 남기기</a>
   </div></div>
   <div class="col-md-6 col-lg-3"><div class="card card-body h-100">
-    <h2 class="h6">내 문의</h2>
+    <h3 class="h6">내 문의</h3>
     <p class="text-muted small">연락처로 남긴 문의와 매장 답변을 확인합니다.</p>
     <a href="/inquiries/lookup" class="btn btn-outline-primary mt-auto">답변 확인</a>
   </div></div>
 </div>
+
 {% endblock %}
