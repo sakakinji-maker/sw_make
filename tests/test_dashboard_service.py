@@ -24,9 +24,15 @@ def test_dashboard_service_filters_and_counts(monkeypatch):
     inquiry_repository.count_unanswered_by_store.return_value = 3
     contents = [SimpleNamespace(text="최근 콘텐츠")]
 
-    monkeypatch.setattr(dashboard_service, "ReservationService", lambda session: reservation_service)
-    monkeypatch.setattr(dashboard_service, "InquiryRepository", lambda session: inquiry_repository)
-    monkeypatch.setattr(dashboard_service, "count_marketing_contents", lambda session, store_id: 6)
+    monkeypatch.setattr(
+        dashboard_service, "ReservationService", lambda session: reservation_service
+    )
+    monkeypatch.setattr(
+        dashboard_service, "InquiryRepository", lambda session: inquiry_repository
+    )
+    monkeypatch.setattr(
+        dashboard_service, "count_marketing_contents", lambda session, store_id: 6
+    )
     monkeypatch.setattr(
         dashboard_service,
         "list_marketing_contents",
