@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.models.models import Customer, Reservation, ReservationHistory, Store
 from app.repositories.reservation_repository import ReservationRepository
+from app.services.notification import Notifier, NullNotifier
 from app.services.reservation.schemas import ReservationCreate, ReservationSlot
 from app.services.reservation.states import ReservationStatus, state_of
 
@@ -52,10 +53,16 @@ class CustomerHistory:
 
 
 class ReservationService:
-    def __init__(self, session: Session, now: Callable[[], datetime] = datetime.now) -> None:
+    def __init__(
+        self,
+        session: Session,
+        now: Callable[[], datetime] = datetime.now,
+        notifier: Notifier | None = None,
+    ) -> None:
         self.session = session
         self.repo = ReservationRepository(session)
         self.now = now  # 테스트에서 '지금'을 고정하려고 주입받는다.
+        self.notifier = notifier or NullNotifier()  # 문자 알림. 라우터가 실제 알림기를 넣는다.
 
     # ----- 상태 전이 (F-02-4, F-02-5) -----
     def apply(self, reservation: Reservation, action: str) -> Reservation:
@@ -75,7 +82,12 @@ class ReservationService:
         """점주 처리: 확정·방문완료·노쇼·취소."""
         if action not in OWNER_ACTIONS:
             raise ValueError(f"점주가 할 수 없는 동작: {action}")
-        return self.apply(self.get(reservation_id), action)
+        reservation = self.apply(self.get(reservation_id), action)
+        if action == "confirm":
+            self.notifier.reservation_confirmed(reservation)
+        elif action == "cancel":
+            self.notifier.reservation_cancelled_by_owner(reservation)
+        return reservation
 
     # ----- 고객: 신청·조회·변경·취소 (F-02-1, F-02-3) -----
     def create(self, data: ReservationCreate) -> Reservation:
@@ -92,7 +104,9 @@ class ReservationService:
         history = ReservationHistory(
             reservation=reservation, from_status=NEW_MARK, to_status=reservation.status
         )
-        return self.repo.add(reservation, history)
+        saved = self.repo.add(reservation, history)
+        self.notifier.reservation_requested(saved)
+        return saved
 
     def find_by_phone(self, phone: str) -> list[Reservation]:
         return self.repo.list_by_phone(phone)
@@ -104,12 +118,17 @@ class ReservationService:
         self.check_slot(
             reservation.store, slot.reserved_at, slot.party_size, exclude_id=reservation.id
         )
+        old_at, old_party = reservation.reserved_at, reservation.party_size
         reservation.reserved_at = slot.reserved_at
         reservation.party_size = slot.party_size
-        return self.apply(reservation, "change")
+        reservation = self.apply(reservation, "change")
+        self.notifier.reservation_changed(reservation, old_at, old_party)
+        return reservation
 
     def cancel_by_customer(self, reservation_id: int, phone: str) -> Reservation:
-        return self.apply(self.get_owned(reservation_id, phone), "cancel")
+        reservation = self.apply(self.get_owned(reservation_id, phone), "cancel")
+        self.notifier.reservation_cancelled_by_customer(reservation)
+        return reservation
 
     # ----- 매장 규칙 검사 (F-02-2) -----
     def check_slot(

@@ -82,6 +82,11 @@
         {% if result.error %}
           <p class="mb-0 text-danger">{{ result.error }}</p>
         {% else %}
+          {# 운영계획서: 생성형 AI 결과는 사용자에게 AI 생성 결과임을 표시한다 #}
+          <p class="small text-muted mb-2" data-ai-label>
+            <span class="badge text-bg-info">AI 생성</span>
+            AI가 만든 문구입니다. 가격·영업시간 등 사실을 확인한 뒤 사용하세요.
+          </p>
           <p class="mb-2" style="white-space: pre-wrap;">{{ result.text }}</p>
           {% if result.violations %}
           <hr>
@@ -99,7 +104,7 @@
   <!-- 생성 이력 -->
   <div class="col-lg-7">
     <div class="card">
-      <div class="card-header">생성 이력</div>
+      <div class="card-header">생성 이력 <span class="badge text-bg-info ms-1">AI 생성</span></div>
       {% if not contents %}
       <div class="card-body text-muted">아직 생성된 문구가 없습니다.</div>
       {% else %}
@@ -152,6 +157,7 @@
       </div>
       <div class="modal-body">
         <div class="mb-2 small text-muted">
+          <span class="badge text-bg-info me-1">AI 생성</span>
           <span id="d-channel" class="badge text-bg-secondary me-1"></span>
           <span id="d-target" class="fw-semibold"></span>
           <span class="ms-2 text-muted" id="d-date"></span>

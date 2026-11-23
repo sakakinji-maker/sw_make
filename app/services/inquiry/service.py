@@ -10,6 +10,7 @@ from app.models.models import FAQ, Inquiry, MenuItem, Store
 from app.repositories.inquiry_repository import InquiryRepository
 from app.services.inquiry.fact_checker import FactChecker, Mismatch
 from app.services.inquiry.schemas import AnswerSubmit, InquiryCreate, InquiryLookup
+from app.services.notification import Notifier, NullNotifier
 
 SYSTEM_PROMPT = (
     "당신은 소상공인 매장의 고객 문의 답변을 돕는 도우미입니다. "
@@ -59,9 +60,15 @@ class CustomerView:
 
 
 class InquiryService:
-    def __init__(self, ai_client: AIClient, repository: InquiryRepository | None = None) -> None:
+    def __init__(
+        self,
+        ai_client: AIClient,
+        repository: InquiryRepository | None = None,
+        notifier: Notifier | None = None,
+    ) -> None:
         self.ai = ai_client
         self.repo = repository
+        self.notifier = notifier or NullNotifier()  # 문자 알림. 라우터가 실제 알림기를 넣는다.
 
     # ----- F-03-1 문의 등록 -----
     def register(self, data: InquiryCreate) -> Inquiry:
@@ -69,7 +76,9 @@ class InquiryService:
             raise StoreNotFoundError(f"매장을 찾을 수 없습니다 (id={data.store_id})")
         customer = self.repo.find_or_create_customer(data.name, data.phone)
         inquiry = Inquiry(store_id=data.store_id, customer=customer, content=data.content)
-        return self.repo.add(inquiry)
+        saved = self.repo.add(inquiry)
+        self.notifier.inquiry_received(saved)
+        return saved
 
     # ----- F-03-6 고객 답변 확인 -----
     # AI-assisted (Claude) — 정회성 검토 완료
@@ -141,9 +150,12 @@ class InquiryService:
         이미 답변완료여도 다시 저장할 수 있다(오타 수정 등).
         """
         inquiry = self.get(inquiry_id)
+        first_answer = inquiry.status != ANSWERED
         inquiry.final_answer = data.answer
         inquiry.status = ANSWERED
         self.repo.save()
+        if first_answer:  # 오타 수정으로 다시 저장할 때는 문자를 또 보내지 않는다.
+            self.notifier.inquiry_answered(inquiry)
         return inquiry
 
     def check_answer(self, inquiry: Inquiry, text: str) -> list[Mismatch]:

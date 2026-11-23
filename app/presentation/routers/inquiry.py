@@ -30,6 +30,7 @@ from app.services.inquiry.service import (
     InquiryService,
     StoreNotFoundError,
 )
+from app.services.notification import Notifier, get_notifier
 
 router = APIRouter(tags=["inquiry"])
 
@@ -55,8 +56,9 @@ def get_ai() -> AIClient:
 def get_service(
     session: Annotated[Session, Depends(get_session)],
     ai: Annotated[AIClient, Depends(get_ai)],
+    notifier: Annotated[Notifier, Depends(get_notifier)],
 ) -> InquiryService:
-    return InquiryService(ai, InquiryRepository(session))
+    return InquiryService(ai, InquiryRepository(session), notifier=notifier)
 
 
 ServiceDep = Annotated[InquiryService, Depends(get_service)]

@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.db.database import get_session
 from app.presentation.templating import templates
+from app.services.notification import Notifier, get_notifier
 from app.services.reservation.schemas import (
     MAX_PARTY_SIZE,
     ReservationCreate,
@@ -48,8 +49,11 @@ STATUS_BADGES = {
 }
 
 
-def get_service(session: Annotated[Session, Depends(get_session)]) -> ReservationService:
-    return ReservationService(session)
+def get_service(
+    session: Annotated[Session, Depends(get_session)],
+    notifier: Annotated[Notifier, Depends(get_notifier)],
+) -> ReservationService:
+    return ReservationService(session, notifier=notifier)
 
 
 ServiceDep = Annotated[ReservationService, Depends(get_service)]
