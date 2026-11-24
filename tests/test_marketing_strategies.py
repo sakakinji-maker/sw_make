@@ -72,10 +72,13 @@ def test_store_info_lists_only_menus_on_sale():
     from app.models.models import MenuItem, Store
     from app.services.marketing.service import store_info
 
-    store = Store(name="브루밍 카페", address="서울", open_time=time(9), close_time=time(21),
-                  closed_days="월")
-    menus = [MenuItem(name="라떼", price=5500, on_sale=True),
-             MenuItem(name="단종메뉴", price=1000, on_sale=False)]
+    store = Store(
+        name="브루밍 카페", address="서울", open_time=time(9), close_time=time(21), closed_days="월"
+    )
+    menus = [
+        MenuItem(name="라떼", price=5500, on_sale=True),
+        MenuItem(name="단종메뉴", price=1000, on_sale=False),
+    ]
     info = store_info(store, menus)
     assert "브루밍 카페" in info and "09:00~21:00" in info and "월요일" in info
     assert "라떼 5,500원" in info and "단종메뉴" not in info

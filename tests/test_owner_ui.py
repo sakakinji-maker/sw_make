@@ -161,8 +161,15 @@ def test_timeline_groups_same_time_reservations(client, factory):
     with factory() as s:
         store = s.get(Store, 1)
         for name in ("같은시각1", "같은시각2"):
-            s.add(Reservation(store=store, customer=Customer(name=name, phone="010-9999-0000"),
-                              reserved_at=at, party_size=2, status="확정"))
+            s.add(
+                Reservation(
+                    store=store,
+                    customer=Customer(name=name, phone="010-9999-0000"),
+                    reserved_at=at,
+                    party_size=2,
+                    status="확정",
+                )
+            )
         s.commit()
     page = client.get("/owner").text
     dots = [d for d in page.split("data-timeline-dot")[1:] if "같은시각1" in d]
@@ -183,8 +190,15 @@ def test_week_bar_links_to_that_day(client, factory):
         store = s.get(Store, 1)
         for name, offset in (("그날손님", 0), ("다음날손님", 1)):
             at = dt.combine(day + td(days=offset), dt.min.time()).replace(hour=15)
-            s.add(Reservation(store=store, customer=Customer(name=name, phone="010-9999-1111"),
-                              reserved_at=at, party_size=2, status="요청"))
+            s.add(
+                Reservation(
+                    store=store,
+                    customer=Customer(name=name, phone="010-9999-1111"),
+                    reserved_at=at,
+                    party_size=2,
+                    status="요청",
+                )
+            )
         s.commit()
     assert f'href="/owner/reservations?day={day.isoformat()}"' in client.get("/owner").text
     page = client.get(f"/owner/reservations?day={day.isoformat()}").text

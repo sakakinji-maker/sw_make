@@ -189,8 +189,12 @@ def test_marketing_custom_keywords_join_checked_ones(client, factory, monkeypatc
     monkeypatch.setattr(owner, "get_ai_client", MockAIClient)
     res = client.post(
         "/owner/marketing/generate",
-        data={"channel": "sms", "target": "대학생", "keywords_raw": "신메뉴 출시",
-              "keywords_custom": "홍시에이드, 신메뉴 출시 ,오픈 1주년"},
+        data={
+            "channel": "sms",
+            "target": "대학생",
+            "keywords_raw": "신메뉴 출시",
+            "keywords_custom": "홍시에이드, 신메뉴 출시 ,오픈 1주년",
+        },
     )
     assert 'value="홍시에이드, 신메뉴 출시 ,오픈 1주년"' in res.text  # 입력값이 칸에 남는다
     with factory() as s:

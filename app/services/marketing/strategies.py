@@ -29,8 +29,7 @@ class ChannelStrategy(ABC):
             # 매장 정보를 주지 않으면 AI가 메뉴·가격·위치를 지어낸다 (블로그에서 특히 심함)
             prompt += f"\n[매장 정보 — 사실로 쓸 수 있는 것은 이것뿐입니다]\n{store_info}\n\n"
         prompt += (
-            f"- 홍보 대상: {target}\n"
-            f"- 키워드: {', '.join(keywords) if keywords else '없음'}\n"
+            f"- 홍보 대상: {target}\n- 키워드: {', '.join(keywords) if keywords else '없음'}\n"
         )
         if extra_note:
             prompt += f"- 사장님이 꼭 넣어 달라고 한 내용: {extra_note}\n"
