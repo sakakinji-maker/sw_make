@@ -46,8 +46,20 @@
     {% endif %}
   </div>
 
+  {# '발송 전 확인'을 누르면 지금 칸에 있는 답변을 대조한 결과를 보여 준다 #}
+  {% if checked is not none %}
+    {% if checked %}
+    <div class="alert alert-warning" data-check-result="mismatch">
+      <strong>고친 답변에 매장 정보와 다른 내용이 있습니다. 고친 뒤 다시 확인하세요.</strong>
+      <ul class="mb-0">
+        {% for m in checked %}<li>{{ m.kind }} <code>{{ m.found }}</code>: {{ m.message }}</li>{% endfor %}
+      </ul>
+    </div>
+    {% else %}
+    <div class="alert alert-success py-2" data-check-result="ok">고친 답변의 가격·영업시간·휴무일이 매장 정보와 일치합니다. 발송해도 돼요.</div>
+    {% endif %}
   {# F-03-3: AI 초안 대조 결과 (발송 전까지만 보여준다) #}
-  {% if inquiry.ai_draft and inquiry.status == '미응답' %}
+  {% elif inquiry.ai_draft and inquiry.status == '미응답' %}
     {% if mismatches %}
     <div class="alert alert-warning">
       <strong>AI 초안에 매장 정보와 다른 내용이 있습니다. 발송 전에 확인하세요.</strong>
@@ -63,7 +75,7 @@
   {% endif %}
 
   {# 확정된 답변도 같은 기준으로 대조해 보여준다 #}
-  {% if final_mismatches %}
+  {% if final_mismatches and checked is none %}
   <div class="alert alert-warning">
     <strong>저장된 답변에 매장 정보와 다른 내용이 있습니다.</strong>
     <ul class="mb-0">
@@ -78,12 +90,13 @@
               placeholder="고객에게 보낼 답변을 입력하세요.">{{ answer }}</textarea>
     <div class="d-flex gap-2 mt-2">
       <button class="btn btn-primary" data-send-btn>{{ '수정 후 재발송' if inquiry.status != '미응답' else '발송' }}</button>
+      <button class="btn btn-outline-primary" formaction="/owner/inquiries/{{ inquiry.id }}/check" data-check-btn>발송 전 확인</button>
       <button type="button" class="btn btn-outline-secondary" id="copy-btn">답변 복사</button>
       <span class="text-muted small align-self-center" id="copy-msg"></span>
     </div>
   </form>
   {% if inquiry.ai_draft and inquiry.status == '미응답' %}
-  <p class="text-muted small mt-2 mb-0">AI가 만든 초안입니다. 확인·수정한 뒤 "발송"을 누르세요. AI 원본은 검증용으로 따로 보관됩니다.</p>
+  <p class="text-muted small mt-2 mb-0">AI가 만든 초안입니다. 고쳤다면 "발송 전 확인"으로 매장 정보와 맞는지 본 뒤 "발송"을 누르세요. AI 원본은 검증용으로 따로 보관됩니다.</p>
   {% endif %}
 </div>
 

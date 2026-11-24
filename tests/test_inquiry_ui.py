@@ -63,3 +63,46 @@ def test_home_has_faq_anchor(client):
 def test_lookup_requires_name(client):
     page = client.post("/inquiries/lookup", data={"phone": "010-0000-0101", "name": " "})
     assert page.status_code == 400 and "이름을(를) 입력해 주세요" in page.text
+
+
+def test_check_before_send_does_not_send(tmp_path):
+    """발송 전 확인 (11/24): 고친 답변을 대조만 하고, 저장·문자 발송은 하지 않는다."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.pool import StaticPool
+
+    from app.adapters.sms import MockSmsSender
+    from app.db.database import Base, get_session
+    from app.db.seed import load_all
+    from app.models.models import Inquiry
+    from app.presentation.routers import inquiry as inquiry_router
+    from app.services.notification import Notifier
+
+    engine = create_engine(
+        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+    )
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine)
+    with factory() as s:
+        load_all(s)
+        s.commit()
+
+    def _session():
+        with factory() as s:
+            yield s
+
+    sms = MockSmsSender()
+    app.dependency_overrides[get_session] = _session
+    app.dependency_overrides[inquiry_router.get_notifier] = lambda: Notifier(sms, "010-0000-0000")
+    try:
+        c = TestClient(app)
+        wrong = c.post("/owner/inquiries/1/check", data={"answer": "아메리카노는 3,000원입니다."})
+        assert 'data-check-result="mismatch"' in wrong.text
+        assert ">아메리카노는 3,000원입니다.</textarea>" in wrong.text  # 고친 글이 칸에 남는다
+        ok = c.post("/owner/inquiries/1/check", data={"answer": "아메리카노는 4,500원입니다."})
+        assert 'data-check-result="ok"' in ok.text and "data-check-btn" in ok.text
+        with factory() as s:
+            assert s.get(Inquiry, 1).status == "미응답"  # 저장 안 됨
+        assert sms.sent == []  # 문자도 안 감
+    finally:
+        app.dependency_overrides.clear()

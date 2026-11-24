@@ -248,6 +248,7 @@ def _render_detail(
     sent: str | None = None,
     errors: list[str] | None = None,
     answer: str | None = None,
+    checked: list | None = None,
     status_code: int = 200,
 ) -> HTMLResponse:
     """입력칸에는 '방금 입력한 값 → 확정된 답변 → AI 초안 → 빈칸' 순으로 채운다."""
@@ -261,9 +262,28 @@ def _render_detail(
         "errors": errors or [],
         "answer": answer if answer is not None else (final or plain_text(inquiry.ai_draft or "")),
         "max_answer_length": MAX_ANSWER_LENGTH,
+        "checked": checked,  # '발송 전 확인'으로 고친 답변을 대조한 결과 (None이면 확인 안 함)
     }
     return templates.TemplateResponse(
         request, "owner/inquiry_detail.html", context, status_code=status_code
+    )
+
+
+@router.post("/owner/inquiries/{inquiry_id}/check", response_class=HTMLResponse)
+def check_answer(
+    request: Request,
+    inquiry_id: int,
+    service: ServiceDep,
+    answer: Annotated[str, Form()] = "",
+) -> HTMLResponse:
+    """보내지 않고, 점주가 고친 답변을 매장 정보와 대조만 한다. (F-03-3, 발송 전 확인)"""
+    inquiry = _get_or_404(service, inquiry_id)
+    text = plain_text(answer)
+    if not text.strip():
+        errors = ["답변을 입력해 주세요."]
+        return _render_detail(request, service, inquiry, errors=errors, answer=answer)
+    return _render_detail(
+        request, service, inquiry, answer=answer, checked=service.check_answer(inquiry, text)
     )
 
 

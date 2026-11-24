@@ -7,6 +7,9 @@
     display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
   }
   .dashboard-content-row { min-width: 0; max-width: 100%; }
+  .owner-hero { color: #fff; border-radius: 1rem; padding: 1.75rem 1.5rem;
+                background: linear-gradient(90deg, rgba(43, 29, 20, .85), rgba(43, 29, 20, .45)),
+                            url("/static/img/cafe-hero.jpg") center 60% / cover; }
   .kpi { transition: transform .15s, box-shadow .15s; }
   .kpi:hover { transform: translateY(-2px); box-shadow: 0 .5rem 1rem rgba(43, 29, 20, .08) !important; }
   .kpi-icon { width: 44px; height: 44px; border-radius: .8rem; display: flex; align-items: center;
@@ -38,12 +41,13 @@
 {% set dot = {'요청': '#ffc107', '확정': '#6f4e37', '방문완료': '#198754', '취소': '#adb5bd', '노쇼': '#dc3545'} %}
 {% set wd = '월화수목금토일' %}
 
-<div class="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-4">
+{# 첫인상만 카페 분위기로: 인사 칸에만 카페 사진을 어둡게 깐다 (표·그래프는 그대로) #}
+<div class="owner-hero d-flex justify-content-between align-items-end flex-wrap gap-2 mb-4" data-owner-hero>
   <div>
-    <p class="text-muted small mb-1">{{ today.strftime('%Y년 %m월 %d일') }} ({{ wd[today.weekday()] }})</p>
+    <p class="small mb-1 opacity-75">{{ today.strftime('%Y년 %m월 %d일') }} ({{ wd[today.weekday()] }})</p>
     <h1 class="h3 fw-bold mb-0">안녕하세요, 사장님 👋</h1>
   </div>
-  <a class="btn btn-sm btn-outline-primary" href="/owner/store">매장 정보 관리</a>
+  <a class="btn btn-sm btn-light" href="/owner/store">매장 정보 관리</a>
 </div>
 
 {% macro summary_card(href, icon, title, value, sub='', highlight=false, attr='') %}

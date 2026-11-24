@@ -73,3 +73,12 @@ def test_reservation_done_page(client):
     assert "12/01(화)" in page and "12:00 · 2명" in page and "창가 자리" in page
     assert 'action="/reservations/lookup"' in page and 'value="010-9999-0000"' in page
     assert 'name="name" value="홍길동"' in page  # 이름도 같이 넘겨 바로 조회
+
+
+def test_footer_sticks_to_bottom_on_short_pages():
+    """짧은 페이지에서도 푸터가 화면 맨 아래에 붙는다 (11/24)."""
+    with TestClient(app) as client:
+        page = client.get("/reservations/lookup").text
+    assert 'class="d-flex flex-column min-vh-100"' in page
+    assert "flex-grow-1" in page.split("<main")[1].split(">")[0]
+    assert 'class="border-top bg-white mt-auto" data-footer' in page

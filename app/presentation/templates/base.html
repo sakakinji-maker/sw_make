@@ -16,7 +16,8 @@
       --bs-link-color: #6f4e37; --bs-link-color-rgb: 111, 78, 55;
       --bs-link-hover-color: #563b29; --bs-link-hover-color-rgb: 86, 59, 41;
     }
-    body { background: var(--brand-bg);
+    /* 손님 화면 배경: 흐리게 처리한 카페 실내 사진(크림색으로 60% 덮음, Gemini 생성). 스크롤해도 고정 */
+    body { background: var(--brand-bg) url("/static/img/cafe-page-bg.jpg") center / cover fixed no-repeat;
            font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
                         "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
     .btn-primary { --bs-btn-bg: #6f4e37; --bs-btn-border-color: #6f4e37; --bs-btn-hover-bg: #563b29;
@@ -35,7 +36,7 @@
     .customer-nav-link.active { background: var(--brand-soft); color: var(--brand) !important; font-weight: 600; }
   </style>
 </head>
-<body data-theme="cafe">
+<body data-theme="cafe" class="d-flex flex-column min-vh-100">
   {# 폰에서는 메뉴를 ☰ 버튼 안으로 접는다 (md 이상에서만 펼침). 지금 보고 있는 화면은 강조한다. #}
   {% set path = request.url.path %}
   {% macro nav_link(href, label, active) %}
@@ -60,12 +61,13 @@
       </div>
     </div>
   </nav>
-  <main class="container py-4">
+  {# 내용이 짧아도 푸터가 화면 맨 아래에 붙도록 본문이 남는 높이를 채운다 #}
+  <main class="container py-4 flex-grow-1">
     {% block content %}{% endblock %}
   </main>
   {# 모든 고객 화면 아래에 매장 기본 정보 #}
   {% if st %}
-  <footer class="border-top bg-white mt-4" data-footer>
+  <footer class="border-top bg-white mt-auto" data-footer>
     <div class="container py-4 small text-muted">
       <div class="fw-semibold text-body mb-1">☕ {{ st.name }}</div>
       <div class="d-flex flex-wrap column-gap-3 row-gap-1">
