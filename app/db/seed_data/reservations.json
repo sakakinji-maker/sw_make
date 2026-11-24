@@ -31,7 +31,14 @@
   {"store": "cafe", "customer": {"name": "표서준", "phone": "010-1111-2024"}, "reserved_at": "2026-11-21T18:00:00", "party_size": 4, "request": "저녁 디저트 모임", "status": "요청"},
   {"store": "cafe", "customer": {"name": "고나은", "phone": "010-1111-2025"}, "reserved_at": "2026-11-22T11:00:00", "party_size": 2, "request": "텀블러 지참할게요", "status": "요청"},
   {"store": "cafe", "customer": {"name": "도민재", "phone": "010-1111-2026"}, "reserved_at": "2026-11-22T14:00:00", "party_size": 3, "request": "치즈케이크 예약 가능한지 확인 부탁", "status": "요청"},
-  {"store": "cafe", "customer": {"name": "원지혜", "phone": "010-1111-2027"}, "reserved_at": "2026-11-24T16:00:00", "party_size": 10, "request": "동아리 종강 파티, 단체 메뉴 상담 원해요", "status": "요청"},
-  {"store": "cafe", "customer": {"name": "지현우", "phone": "010-1111-2028"}, "reserved_at": "2026-11-24T10:00:00", "party_size": 2, "request": "", "status": "요청"},
-  {"store": "cafe", "customer": {"name": "채소연", "phone": "010-1111-2029"}, "reserved_at": "2026-11-25T12:30:00", "party_size": 4, "request": "점심 후 티타임 모임", "status": "요청"}
+  {"store": "cafe", "customer": {"name": "서지우", "phone": "010-1111-2030"}, "reserved_at": "2026-12-25T11:00:00", "party_size": 3, "request": "크리스마스 브런치 모임", "status": "확정"},
+  {"store": "cafe", "customer": {"name": "문하준", "phone": "010-1111-2031"}, "reserved_at": "2026-12-25T15:00:00", "party_size": 2, "request": "커플석 부탁드려요", "status": "요청"},
+  {"store": "cafe", "customer": {"name": "백소율", "phone": "010-1111-2032"}, "reserved_at": "2026-12-25T19:00:00", "party_size": 6, "request": "크리스마스 파티, 케이크 가져가도 되나요?", "status": "요청"},
+  {"store": "cafe", "customer": {"name": "임도윤", "phone": "010-1111-2033"}, "reserved_at": "2026-12-26T13:00:00", "party_size": 4, "request": "가족 모임, 유아 의자 1개 필요", "status": "요청"},
+  {"store": "cafe", "customer": {"name": "한가은", "phone": "010-1111-2034"}, "reserved_at": "2026-12-26T17:30:00", "party_size": 2, "request": "", "status": "요청"},
+  {"store": "cafe", "customer": {"name": "송유준", "phone": "010-1111-2035"}, "reserved_at": "2026-12-27T10:30:00", "party_size": 5, "request": "스터디 송년회", "status": "요청"},
+  {"store": "cafe", "customer": {"name": "권나연", "phone": "010-1111-2036"}, "reserved_at": "2026-12-29T14:00:00", "party_size": 3, "request": "소규모 업무 미팅", "status": "요청"},
+  {"store": "cafe", "customer": {"name": "신우진", "phone": "010-1111-2037"}, "reserved_at": "2026-12-30T16:00:00", "party_size": 8, "request": "동아리 송년회, 단체 메뉴 상담 원해요", "status": "요청"},
+  {"store": "cafe", "customer": {"name": "유채원", "phone": "010-1111-2038"}, "reserved_at": "2026-12-31T12:00:00", "party_size": 2, "request": "창가 자리 부탁드려요", "status": "요청"},
+  {"store": "cafe", "customer": {"name": "조민호", "phone": "010-1111-2039"}, "reserved_at": "2026-12-31T18:30:00", "party_size": 4, "request": "한 해 마무리 모임", "status": "요청"}
 ]
