@@ -1,28 +1,38 @@
 {% extends "base.html" %}
 {% block title %}{{ store.name if store else '매장 안내' }}{% endblock %}
 {% block content %}
+<style>
+  .menu-icon { font-size: 2.5rem; line-height: 1; height: 110px; display: flex; align-items: center;
+               justify-content: center; background: var(--brand-soft); border-radius: .5rem; }
+  .menu-photo { width: 100%; height: 110px; object-position: center; object-fit: cover; border-radius: .5rem;
+                background: var(--brand-soft); }
+  /* 매장 헤더: 흐리게 처리한 카페 사진을 배경으로 (글씨가 잘 읽히게 어둡게 덮는다) */
+  .menu-soldout { opacity: .55; }
+  .store-hero { background: linear-gradient(rgba(43, 29, 20, .55), rgba(43, 29, 20, .7)),
+                url("/static/img/cafe-bg.jpg") center / cover; color: #fff; border: 0; }
+  .store-hero .text-muted { color: rgba(255, 255, 255, .85) !important; }
+  .faq-more-btn { background: #fff; border: 1px solid #dee2e6; color: #495057; font-weight: 500;
+                  box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+  .faq-more-btn:hover { background: var(--brand-soft); color: var(--brand); border-color: #d9c6b6; }
+  .faq-more-chev { margin-left: .35rem; vertical-align: -1px; transition: transform .2s; }
+  .faq-more-btn[aria-expanded="true"] .faq-more-chev { transform: rotate(180deg); }
+</style>
 
 {# ── 매장 헤더 ────────────────────────────────────────────── #}
 {% if store %}
-<div class="card mb-4">
-  <div class="card-body">
-    <div class="d-flex align-items-center gap-3 mb-2">
+<div class="card mb-3 store-hero" data-store-hero>
+  <div class="card-body py-4">
+    <div class="d-flex align-items-center flex-wrap gap-2 mb-2">
       <span class="fs-3">☕</span>
-      <div>
-        <h1 class="h4 mb-0">{{ store.name }}</h1>
-        {% if store.category %}<span class="badge text-bg-secondary">{{ store.category }}</span>{% endif %}
-      </div>
+      <h1 class="h4 mb-0 me-1">{{ store.name }}</h1>
+      {% if status %}<span class="badge {{ status.badge }}" data-open-status>{{ status.label }}</span>{% endif %}
     </div>
     <div class="row g-2 mt-1 small text-muted">
       {% if store.address %}
-      <div class="col-sm-6">
-        <span class="me-1">📍</span>{{ store.address }}
-      </div>
+      <div class="col-sm-6"><span class="me-1">📍</span>{{ store.address }}</div>
       {% endif %}
       {% if store.phone %}
-      <div class="col-sm-6">
-        <span class="me-1">📞</span>{{ store.phone }}
-      </div>
+      <div class="col-sm-6"><span class="me-1">📞</span>{{ store.phone }}</div>
       {% endif %}
       {% if store.open_time and store.close_time %}
       <div class="col-sm-6">
@@ -30,25 +40,54 @@
       </div>
       {% endif %}
       {% if store.closed_days %}
-      <div class="col-sm-6">
-        <span class="me-1">🗓️</span>정기휴무 {{ store.closed_days }}
-      </div>
+      <div class="col-sm-6"><span class="me-1">🗓️</span>정기휴무 {{ store.closed_days.replace(',', '·') }}요일</div>
       {% endif %}
     </div>
   </div>
 </div>
 {% else %}
-<h1 class="h4 mb-4">예약 및 문의</h1>
+<h1 class="h4 mb-3">예약 및 문의</h1>
 {% endif %}
 
-{# ── 메뉴 ─────────────────────────────────────────────────── #}
-{% if menus %}
-<h2 class="h6 text-muted text-uppercase letter-spacing-1 mb-3">메뉴</h2>
+{# ── 예약·문의 (손님이 가장 많이 찾는 기능이라 매장 정보 바로 아래에 둔다) ── #}
+<section class="mb-4" data-actions>
+  <div class="row g-2">
+    <div class="col-6">
+      <a href="/reservations/new" class="btn btn-primary w-100 py-3">
+        <span class="d-block fw-semibold">📅 예약하기</span>
+        <span class="d-block small opacity-75">날짜·시간·인원 선택</span>
+      </a>
+    </div>
+    <div class="col-6">
+      <a href="/inquiries/new" class="btn btn-primary w-100 py-3">
+        <span class="d-block fw-semibold">💬 문의하기</span>
+        <span class="d-block small opacity-75">궁금한 점 남기기</span>
+      </a>
+    </div>
+    <div class="col-6">
+      <a href="/reservations/lookup" class="btn btn-outline-primary w-100">내 예약 확인·변경</a>
+    </div>
+    <div class="col-6">
+      <a href="/inquiries/lookup" class="btn btn-outline-primary w-100">내 문의 답변 확인</a>
+    </div>
+  </div>
+</section>
+
+{# ── 메뉴 (음료 / 디저트) ─────────────────────────────────── #}
+{% for group_name, items in menu_groups if items %}
+<h2 class="h6 text-muted mb-2" data-menu-group>{{ group_name }}</h2>
 <div class="row g-2 mb-4">
-  {% for m in menus %}
+  {% for m in items %}
   <div class="col-6 col-md-4 col-lg-3">
-    <div class="card card-body p-2 h-100">
-      <div class="fw-semibold small mb-1">{{ m.name }}</div>
+    {# 메뉴 이름·설명·가격·판매 여부는 DB(menu_items)에서, 사진만 static/menu 파일에서 가져온다 #}
+    <div class="card card-body p-2 h-100{% if not m.on_sale %} menu-soldout{% endif %}"{% if not m.on_sale %} data-soldout{% endif %}>
+      {% set photo = menu_photo(m.name) %}
+      {% if photo %}
+      <img class="menu-photo mb-2" src="{{ photo }}" alt="{{ m.name }}" loading="lazy" data-menu-photo>
+      {% else %}
+      <div class="menu-icon mb-2" aria-hidden="true">{{ menu_icon(m.name) }}</div>
+      {% endif %}
+      <div class="fw-semibold small mb-1">{{ m.name }}{% if not m.on_sale %} <span class="badge text-bg-secondary ms-1">품절</span>{% endif %}</div>
       {% if m.description %}
       <div class="text-muted" style="font-size:0.78rem;">{{ m.description }}</div>
       {% endif %}
@@ -57,14 +96,16 @@
   </div>
   {% endfor %}
 </div>
-{% endif %}
+{% endfor %}
 
-{# ── FAQ ──────────────────────────────────────────────────── #}
+{# ── FAQ: 앞의 몇 개만 보여 주고 나머지는 '더보기' ─────────── #}
 {% if faqs %}
-<h2 class="h6 text-muted text-uppercase letter-spacing-1 mb-3">자주 묻는 질문</h2>
-<div class="accordion mb-4" id="faqAccordion">
-  {% for faq in faqs %}
-  <div class="accordion-item">
+<h2 class="h6 text-muted mb-2" id="faq" style="scroll-margin-top: 80px;">자주 묻는 질문</h2>
+{# 앞의 몇 개만 보이고 나머지는 숨겨 둔다.
+   '더보기'를 접히는 칸(collapse)으로 감싸면 Bootstrap이 질문을 펼 때 그 칸까지 같이 접어 버려서
+   (질문 하나 누르면 더보기가 닫히고 버튼은 '접기'로 남던 문제, 11/24) 모든 질문을 같은 층에 둔다. #}
+{% macro faq_item(faq, extra=false) %}
+  <div class="accordion-item{% if extra %} d-none{% endif %}"{% if extra %} data-faq-extra{% endif %}>
     <h3 class="accordion-header">
       <button class="accordion-button collapsed small" type="button"
         data-bs-toggle="collapse" data-bs-target="#faq{{ faq.id }}">
@@ -75,33 +116,39 @@
       <div class="accordion-body small text-muted" style="white-space:pre-wrap;">{{ faq.answer }}</div>
     </div>
   </div>
-  {% endfor %}
+{% endmacro %}
+<div class="accordion" id="faqAccordion">
+  {% for faq in faqs %}{{ faq_item(faq, extra=loop.index > faq_preview) }}{% endfor %}
 </div>
+{% if faqs|length > faq_preview %}
+<div class="text-center mt-3 mb-4">
+  <button class="btn faq-more-btn rounded-pill px-4" type="button" id="faqMoreBtn" aria-expanded="false">
+    <span class="faq-more-label">질문 {{ faqs|length - faq_preview }}개 더보기</span>
+    <svg class="faq-more-chev" width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+</div>
+<script>
+  // 더보기 ↔ 접기 (화살표는 CSS가 돌린다)
+  (() => {
+    const btn = document.getElementById("faqMoreBtn");
+    const label = btn.querySelector(".faq-more-label");
+    const text = label.textContent;
+    const extras = document.querySelectorAll("[data-faq-extra]");
+    btn.addEventListener("click", () => {
+      const open = btn.getAttribute("aria-expanded") !== "true";
+      extras.forEach((el) => {
+        el.classList.toggle("d-none", !open);
+        // 접을 때 펼쳐져 있던 답변도 닫는다
+        if (!open) el.querySelector(".accordion-collapse.show")?.classList.remove("show");
+        if (!open) el.querySelector(".accordion-button")?.classList.add("collapsed");
+      });
+      btn.setAttribute("aria-expanded", open);
+      label.textContent = open ? "접기" : text;
+      if (!open) document.getElementById("faq").scrollIntoView({ behavior: "smooth" });
+    });
+  })();
+</script>
 {% endif %}
-
-{# ── 예약·문의 버튼 ───────────────────────────────────────── #}
-<h2 class="h6 text-muted text-uppercase letter-spacing-1 mb-3">예약 &amp; 문의</h2>
-<div class="row g-3">
-  <div class="col-md-6 col-lg-3"><div class="card card-body h-100">
-    <h3 class="h6">예약하기</h3>
-    <p class="text-muted small">날짜·시간·인원을 골라 예약을 신청합니다.</p>
-    <a href="/reservations/new" class="btn btn-primary mt-auto">예약 신청</a>
-  </div></div>
-  <div class="col-md-6 col-lg-3"><div class="card card-body h-100">
-    <h3 class="h6">내 예약</h3>
-    <p class="text-muted small">연락처로 예약을 조회하고 변경·취소합니다.</p>
-    <a href="/reservations/lookup" class="btn btn-outline-primary mt-auto">예약 조회</a>
-  </div></div>
-  <div class="col-md-6 col-lg-3"><div class="card card-body h-100">
-    <h3 class="h6">문의하기</h3>
-    <p class="text-muted small">매장에 궁금한 점을 남깁니다.</p>
-    <a href="/inquiries/new" class="btn btn-primary mt-auto">문의 남기기</a>
-  </div></div>
-  <div class="col-md-6 col-lg-3"><div class="card card-body h-100">
-    <h3 class="h6">내 문의</h3>
-    <p class="text-muted small">연락처로 남긴 문의와 매장 답변을 확인합니다.</p>
-    <a href="/inquiries/lookup" class="btn btn-outline-primary mt-auto">답변 확인</a>
-  </div></div>
-</div>
+{% endif %}
 
 {% endblock %}

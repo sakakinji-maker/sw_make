@@ -3,42 +3,57 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h1 class="h4 mb-0">예약 관리</h1>
-  {% if stores %}
-  <form method="get" class="d-flex gap-2">
-    <select name="store_id" class="form-select form-select-sm" onchange="this.form.submit()">
-      {% for s in stores %}
-      <option value="{{ s.id }}" {% if selected and s.id == selected.id %}selected{% endif %}>{{ s.name }}</option>
-      {% endfor %}
-    </select>
-    <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+  {# 날짜·상태 거르기: 날짜를 고르면 그날 예약만, 상태는 보고 있는 탭을 유지한다 #}
+  <form method="get" class="d-flex gap-2" data-filter-form>
+    <input type="hidden" name="view" value="{{ view if view != 'day' else 'upcoming' }}">
+    <input type="date" name="day" class="form-control form-control-sm" aria-label="날짜"
+           value="{{ day.isoformat() if day else '' }}" onchange="this.form.submit()" data-day-input>
+    <select name="status" class="form-select form-select-sm" onchange="this.form.submit()" aria-label="상태">
       <option value="">전체 상태</option>
       {% for st in statuses %}
       <option value="{{ st }}" {% if st == status %}selected{% endif %}>{{ st }}</option>
       {% endfor %}
     </select>
   </form>
-  {% endif %}
 </div>
+
+<ul class="nav nav-pills mb-3 flex-nowrap overflow-auto" data-views>
+  {% for key, label in views.items() %}
+  <li class="nav-item">
+    <a class="nav-link text-nowrap{% if key == view %} active{% endif %}"
+       href="?view={{ key }}{% if status %}&status={{ status }}{% endif %}">{{ label }}</a>
+  </li>
+  {% endfor %}
+</ul>
+
+{% if day %}
+<div class="d-flex align-items-center gap-2 mb-3" data-day-filter>
+  <a class="btn btn-sm btn-outline-secondary" href="?day={{ prev_day.isoformat() }}{% if status %}&status={{ status }}{% endif %}" aria-label="전날" data-prev-day>‹</a>
+  <span class="badge rounded-pill text-bg-light border fs-6 fw-semibold">📅 {{ day.strftime('%m/%d') }}({{ '월화수목금토일'[day.weekday()] }}) 예약 {{ reservations|length }}건</span>
+  <a class="btn btn-sm btn-outline-secondary" href="?day={{ next_day.isoformat() }}{% if status %}&status={{ status }}{% endif %}" aria-label="다음 날" data-next-day>›</a>
+  <a class="small ms-1" href="/owner/reservations">날짜 해제</a>
+</div>
+{% endif %}
 
 {% if not reservations %}
 <div class="alert alert-secondary">조건에 맞는 예약이 없습니다.</div>
 {% else %}
-<div class="table-responsive">
-<table class="table table-hover align-middle bg-white">
-  <thead><tr><th>번호</th><th>일시</th><th>고객</th><th>인원</th><th>요청 사항</th><th>상태</th></tr></thead>
+<div class="card shadow-sm overflow-hidden"><div class="table-responsive">
+<table class="table table-hover align-middle mb-0">
+  <thead><tr><th>일시</th><th>고객</th><th>인원</th><th>요청 사항</th><th>상태</th></tr></thead>
   <tbody>
   {% for r in reservations %}
   <tr onclick="location.href='/owner/reservations/{{ r.id }}'" style="cursor:pointer;">
-    <td>{{ r.id }}</td>
-    <td class="text-nowrap">{{ r.reserved_at.strftime('%m/%d %H:%M') }}</td>
+    <td class="text-nowrap">{{ r.reserved_at.strftime('%m/%d') }}({{ '월화수목금토일'[r.reserved_at.weekday()] }}) {{ r.reserved_at.strftime('%H:%M') }}</td>
     <td class="text-nowrap">{{ r.customer.name }}</td>
-    <td>{{ r.party_size }}명</td>
-    <td>{{ r.request }}</td>
+    <td class="text-nowrap">{{ r.party_size }}명</td>
+    <td>{{ r.request or '-' }}</td>
     <td><span class="badge {{ badges[r.status] }}">{{ r.status }}</span></td>
   </tr>
   {% endfor %}
   </tbody>
 </table>
-</div>
+</div></div>
+<p class="text-muted small">행을 누르면 확정·방문완료·노쇼·취소를 처리할 수 있어요.</p>
 {% endif %}
 {% endblock %}

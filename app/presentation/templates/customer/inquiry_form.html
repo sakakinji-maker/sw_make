@@ -1,7 +1,13 @@
 {% extends "base.html" %}
 {% block title %}문의하기{% endblock %}
 {% block content %}
-<h1 class="h4 mb-4">문의하기</h1>
+<div class="mx-auto" style="max-width: 640px;">
+<h1 class="h4 mb-3">문의하기</h1>
+
+<div class="alert alert-light border small py-2" data-faq-hint>
+  💡 주차·단체 예약·텀블러 할인 같은 내용은
+  <a href="/#faq" class="alert-link">자주 묻는 질문</a>에 이미 답이 있어요. 먼저 확인해 보세요.
+</div>
 
 {% if errors %}
 <div class="alert alert-danger" role="alert">
@@ -13,29 +19,39 @@
 <div class="alert alert-secondary">등록된 매장이 없습니다. 관리자에게 문의해 주세요.</div>
 {% else %}
 <form method="post" action="/inquiries" class="card card-body">
-  <div class="mb-3">
-    <label for="store_id" class="form-label">매장</label>
-    <select id="store_id" name="store_id" class="form-select">
-      {% for s in stores %}
-      <option value="{{ s.id }}" {% if form.store_id == s.id %}selected{% endif %}>{{ s.name }}</option>
-      {% endfor %}
-    </select>
-  </div>
+  {# 매장이 하나뿐이라 고르지 않고 바로 넘긴다 #}
+  <input type="hidden" name="store_id" value="{{ stores[0].id }}">
   <div class="row g-3 mb-3">
     <div class="col-md-6">
       <label for="name" class="form-label">이름</label>
-      <input id="name" name="name" class="form-control" maxlength="50" value="{{ form.name or '' }}" required>
+      <input id="name" name="name" class="form-control" maxlength="50" placeholder="홍길동"
+             value="{{ form.name or '' }}" required>
     </div>
     <div class="col-md-6">
       <label for="phone" class="form-label">연락처</label>
-      <input id="phone" name="phone" class="form-control" placeholder="010-1234-5678" value="{{ form.phone or '' }}" required>
+      <input id="phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel" data-phone
+             class="form-control" placeholder="010-1234-5678" value="{{ form.phone or '' }}" required>
+      <div class="form-text" data-sms-notice>답변이 등록되면 문자로 알려 드려요.</div>
     </div>
   </div>
   <div class="mb-3">
-    <label for="content" class="form-label">문의 내용 <small class="text-muted">({{ "{:,}".format(max_length) }}자 이내)</small></label>
-    <textarea id="content" name="content" class="form-control" rows="5" maxlength="{{ max_length }}" required>{{ form.content or '' }}</textarea>
+    <label for="content" class="form-label">문의 내용</label>
+    <textarea id="content" name="content" class="form-control" rows="5" maxlength="{{ max_length }}"
+              placeholder="예: 10명 단체 예약 가능한가요? 케이크를 미리 주문할 수 있나요?" required>{{ form.content or '' }}</textarea>
+    <div class="form-text text-end"><span id="contentCount">0</span> / {{ "{:,}".format(max_length) }}자</div>
   </div>
-  <button class="btn btn-primary">문의 보내기</button>
+  <button class="btn btn-primary py-2">문의 보내기</button>
 </form>
+<script>
+  // 지금까지 쓴 글자 수
+  (() => {
+    const box = document.getElementById("content");
+    const count = document.getElementById("contentCount");
+    const update = () => (count.textContent = box.value.length.toLocaleString());
+    box.addEventListener("input", update);
+    update();
+  })();
+</script>
 {% endif %}
+</div>
 {% endblock %}

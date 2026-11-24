@@ -31,11 +31,16 @@
               {% for t in targets %}
               <div class="form-check mb-0">
                 <input class="form-check-input" type="radio" name="target" value="{{ t }}"
-                  id="tgt_{{ loop.index }}" {% if form.target == t or (not form.target and loop.first) %}checked{% endif %} required>
+                  id="tgt_{{ loop.index }}" {% if form.target == t or (form.target not in targets and loop.first) %}checked{% endif %} required>
                 <label class="form-check-label" for="tgt_{{ loop.index }}">{{ t }}</label>
               </div>
               {% endfor %}
             </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="target_custom">홍보 대상 직접 입력 <small class="text-muted">(선택, 적으면 위 선택 대신 사용)</small></label>
+            <input name="target_custom" id="target_custom" class="form-control" maxlength="30" data-target-custom
+              placeholder="예) 근처 헬스장 회원, 시험 기간 고등학생" value="{{ form.target_custom or '' }}">
           </div>
           <div class="mb-3">
             <label class="form-label">키워드 <small class="text-muted">(복수 선택 가능)</small></label>
@@ -57,9 +62,9 @@
             <input type="hidden" name="keywords_raw" id="keywords_hidden" value="{{ form.keywords_raw or '' }}">
           </div>
           <div class="mb-3">
-            <label class="form-label">추가 내용 <small class="text-muted">(선택)</small></label>
-            <textarea name="extra_note" class="form-control" rows="2"
-              placeholder="예) 오늘 오픈 1주년, 비 오는 날 할인 행사, 신메뉴 말차라떼 출시…">{{ form.extra_note or '' }}</textarea>
+            <label class="form-label" for="keywords_custom">키워드 직접 입력 <small class="text-muted">(선택, 쉼표로 구분)</small></label>
+            <input name="keywords_custom" id="keywords_custom" class="form-control" maxlength="60" data-keywords-custom
+              placeholder="예) 홍시에이드, 오픈 1주년, 비 오는 날" value="{{ form.keywords_custom or '' }}">
           </div>
           <button class="btn btn-primary w-100">✨ 문구 생성</button>
         </form>

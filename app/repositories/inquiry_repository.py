@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.models import Customer, Inquiry, Store
+from app.services.phone import phone_digits
 
 
 class InquiryRepository:
@@ -19,7 +20,8 @@ class InquiryRepository:
 
     def find_or_create_customer(self, name: str, phone: str) -> Customer:
         """연락처가 같으면 같은 고객으로 본다. (UC-02와 같은 기준)"""
-        customer = self.session.scalar(select(Customer).where(Customer.phone == phone))
+        same = func.replace(Customer.phone, "-", "") == phone_digits(phone)
+        customer = self.session.scalar(select(Customer).where(same))
         if customer is None:
             customer = Customer(name=name, phone=phone)
             self.session.add(customer)

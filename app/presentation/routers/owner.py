@@ -2,8 +2,9 @@
 
 from datetime import time
 from typing import Annotated
+from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -13,8 +14,9 @@ from app.db.database import get_session
 from app.models.models import MenuItem, Store
 from app.presentation.templating import templates
 from app.services.dashboard.service import DashboardService
-from app.services.marketing.service import MarketingService
+from app.services.marketing.service import ContentResult, MarketingService
 from app.services.marketing.strategies import available_channels
+from app.services.store.menu_photo import MenuPhotoError, delete_menu_photo, save_menu_photo
 from app.services.store.service import StoreService
 
 CHANNEL_LABELS = {
@@ -53,6 +55,12 @@ def dashboard(request: Request, session: SessionDep) -> HTMLResponse:
         "unanswered": data.unanswered,
         "contents": data.contents,
         "contents_count": data.contents_count,
+        "today_reservations": data.today_reservations,
+        "today_counts": data.today_counts,
+        "pending": data.pending,
+        "week": data.week,
+        "open_time": data.open_time,
+        "close_time": data.close_time,
         "channel_labels": CHANNEL_LABELS,
     }
     return templates.TemplateResponse(request, "owner/dashboard.html", context)
@@ -62,8 +70,8 @@ def dashboard(request: Request, session: SessionDep) -> HTMLResponse:
 
 
 @router.get("/store", response_class=HTMLResponse)
-def store_page(request: Request, svc: StoreSvcDep) -> HTMLResponse:
-    """매장·메뉴·FAQ 관리 화면."""
+def store_page(request: Request, svc: StoreSvcDep, photo_error: str = "") -> HTMLResponse:
+    """매장·메뉴·FAQ 관리 화면. photo_error: 메뉴 사진을 못 올렸을 때 안내."""
     try:
         store = svc.get_store(STORE_ID)
         menus = svc.list_menus(STORE_ID)
@@ -71,7 +79,9 @@ def store_page(request: Request, svc: StoreSvcDep) -> HTMLResponse:
     except ValueError:
         store, menus, faqs = None, [], []
     return templates.TemplateResponse(
-        request, "owner/store.html", {"store": store, "menus": menus, "faqs": faqs}
+        request,
+        "owner/store.html",
+        {"store": store, "menus": menus, "faqs": faqs, "photo_error": photo_error[:100]},
     )
 
 
@@ -111,29 +121,75 @@ def update_store_form(
     return RedirectResponse(url="/owner/store", status_code=status.HTTP_303_SEE_OTHER)
 
 
+MENU_TAB = "/owner/store#tab-menu"
+PhotoFile = Annotated[UploadFile | None, File()]  # 메뉴 사진 (선택)
+
+
+def _menu_tab(photo_error: str = "") -> RedirectResponse:
+    url = f"/owner/store?photo_error={quote(photo_error)}#tab-menu" if photo_error else MENU_TAB
+    return RedirectResponse(url=url, status_code=status.HTTP_303_SEE_OTHER)
+
+
+async def _save_photo(name: str, photo: UploadFile | None) -> str:
+    """사진이 있으면 저장한다. 실패하면 안내 문구를, 성공하거나 사진이 없으면 ''를 돌려준다."""
+    if photo is None or not photo.filename:
+        return ""
+    try:
+        save_menu_photo(name, photo.filename, await photo.read())
+    except MenuPhotoError as e:
+        return str(e)
+    return ""
+
+
 @router.post("/menus")
-def add_menu_form(
+async def add_menu_form(
     svc: StoreSvcDep,
     name: str = Form(...),
     price: int = Form(...),
     description: str = Form(""),
+    photo: PhotoFile = None,
 ):
-    """메뉴 추가 (HTML 폼)."""
+    """메뉴 추가 (HTML 폼). 사진은 선택."""
     try:
-        svc.add_menu(STORE_ID, name, price, description, on_sale=True)
+        menu = svc.add_menu(STORE_ID, name, price, description, on_sale=True)
     except ValueError:
-        pass
-    return RedirectResponse(url="/owner/store#tab-menu", status_code=status.HTTP_303_SEE_OTHER)
+        return _menu_tab()
+    return _menu_tab(await _save_photo(menu.name, photo))
+
+
+@router.post("/menus/{menu_id}/photo")
+async def upload_menu_photo(menu_id: int, svc: StoreSvcDep, photo: PhotoFile = None):
+    """메뉴 사진 올리기·바꾸기."""
+    menu = _owned_menu(svc, menu_id)
+    if photo is None or not photo.filename:
+        return _menu_tab("사진을 골라 주세요.")
+    return _menu_tab(await _save_photo(menu.name, photo))
+
+
+@router.post("/menus/{menu_id}/photo/delete")
+def remove_menu_photo(menu_id: int, svc: StoreSvcDep):
+    """메뉴 사진 지우기 (손님 화면은 이모지로 돌아간다)."""
+    delete_menu_photo(_owned_menu(svc, menu_id).name)
+    return _menu_tab()
 
 
 @router.post("/menus/{menu_id}/delete")
 def delete_menu_form(menu_id: int, svc: StoreSvcDep):
-    """메뉴 삭제 (HTML 폼)."""
+    """메뉴 삭제 (HTML 폼). 사진도 같이 지운다."""
     try:
+        menu = _owned_menu(svc, menu_id)
         svc.delete_menu(STORE_ID, menu_id)
-    except ValueError:
+        delete_menu_photo(menu.name)
+    except (ValueError, HTTPException):
         pass
-    return RedirectResponse(url="/owner/store#tab-menu", status_code=status.HTTP_303_SEE_OTHER)
+    return _menu_tab()
+
+
+def _owned_menu(svc: StoreService, menu_id: int) -> MenuItem:
+    menu = next((m for m in svc.list_menus(STORE_ID) if m.id == menu_id), None)
+    if menu is None:
+        raise HTTPException(status_code=404, detail="메뉴를 찾을 수 없습니다")
+    return menu
 
 
 @router.post("/faqs")
@@ -163,6 +219,10 @@ def delete_faq_form(faq_id: int, svc: StoreSvcDep):
 # ── 홍보 문구 화면 (F-04) ────────────────────────────────
 
 
+MAX_TARGET_LENGTH = 30  # 홍보 대상 직접 입력 길이
+MAX_KEYWORD_LENGTH = 20  # 직접 입력 키워드 한 개 길이
+
+
 @router.get("/marketing", response_class=HTMLResponse)
 def marketing_page(request: Request, session: SessionDep) -> HTMLResponse:
     """홍보 문구 생성 화면."""
@@ -186,24 +246,34 @@ def generate_marketing(
     request: Request,
     session: SessionDep,
     channel: str = Form(...),
-    target: str = Form(...),
+    target: str = Form(""),
+    target_custom: str = Form(""),
     keywords_raw: str = Form(""),
+    keywords_custom: str = Form(""),
     extra_note: str = Form(""),
 ) -> HTMLResponse:
-    """홍보 문구 생성 처리."""
+    """홍보 문구 생성 처리. 고른 키워드 + 직접 입력한 키워드(쉼표로 구분)를 함께 쓴다."""
     keywords = [k.strip() for k in keywords_raw.split(",") if k.strip()]
+    for k in keywords_custom.replace("，", ",").split(","):
+        if k.strip() and k.strip() not in keywords:
+            keywords.append(k.strip()[:MAX_KEYWORD_LENGTH])
     store = session.get(Store, STORE_ID)
     menus = session.query(MenuItem).filter(MenuItem.store_id == STORE_ID).all()
+    picked = target
+    target = target_custom.strip()[:MAX_TARGET_LENGTH] or target  # 직접 입력이 있으면 그걸 쓴다
 
     service = MarketingService(get_ai_client())
-    result = service.generate(
-        channel=channel,
-        target=target,
-        keywords=keywords,
-        store=store,
-        menus=menus,
-        extra_note=extra_note.strip(),
-    )
+    if not target.strip():
+        result = ContentResult(text=None, violations=[], error="홍보 대상을 골라 주세요.")
+    else:
+        result = service.generate(
+            channel=channel,
+            target=target,
+            keywords=keywords,
+            store=store,
+            menus=menus,
+            extra_note=extra_note.strip(),
+        )
 
     if not result.error:
         try:
@@ -229,8 +299,10 @@ def generate_marketing(
             "result": result,
             "form": {
                 "channel": channel,
-                "target": target,
+                "target": picked,
+                "target_custom": target_custom,
                 "keywords_raw": keywords_raw,
+                "keywords_custom": keywords_custom,
                 "extra_note": extra_note,
             },
         },

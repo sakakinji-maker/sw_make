@@ -1,19 +1,33 @@
 {% extends "base_owner.html" %}
 {% block title %}문의 #{{ inquiry.id }}{% endblock %}
 {% block content %}
-<p><a href="/owner/inquiries?store_id={{ inquiry.store_id }}">← 문의함</a></p>
+<style>
+  @media (min-width: 992px) { .inquiry-side { position: sticky; top: 1.5rem; } }
+</style>
+<a href="/owner/inquiries" class="btn btn-link px-0 mb-2">← 문의함</a>
 
-<div class="card card-body mb-3">
+{# PC에서는 왼쪽에 문의, 오른쪽에 답변을 나란히 둔다 (문의를 보면서 바로 답하기) #}
+<div class="row g-3">
+<div class="col-lg-5">
+<div class="inquiry-side">
+
+<div class="card card-body shadow-sm mb-2">
   <div class="d-flex justify-content-between">
     <h1 class="h5 mb-2">{{ inquiry.customer.name }} <small class="text-muted">{{ inquiry.customer.phone }}</small></h1>
     <span class="badge align-self-start {{ 'text-bg-warning' if inquiry.status == '미응답' else 'text-bg-success' }}">{{ inquiry.status }}</span>
   </div>
-  <p class="text-muted small mb-2">{{ inquiry.store.name }} · {{ inquiry.received_at.strftime('%Y-%m-%d %H:%M') }}</p>
-  <p class="mb-0" style="white-space: pre-wrap">{{ inquiry.content }}</p>
+  <p class="text-muted small mb-2">{{ inquiry.received_at.strftime("%m/%d") }}({{ "월화수목금토일"[inquiry.received_at.weekday()] }}) {{ inquiry.received_at.strftime("%H:%M") }} 접수</p>
+  <p class="mb-0 fs-6" style="white-space: pre-wrap">{{ inquiry.content }}</p>
 </div>
+<a class="small" href="/owner/customers?phone={{ inquiry.customer.phone }}">이 고객의 예약 이력 보기 →</a>
+</div>
+</div>
+<div class="col-lg-7">
 
 {% if sent %}
-<div class="alert alert-success">답변을 발송 완료로 저장했습니다. 아래 "답변 복사" 버튼으로 고객에게 보낼 문구를 복사하세요.</div>
+{% set title, detail = sent %}
+<div class="alert {{ 'alert-secondary' if '없어' in title else 'alert-success' }}" data-sent>{{ title }}
+  <div class="small mt-1">{{ detail }} 인스타 DM 등 다른 곳으로도 보내려면 "답변 복사"를 쓰세요.</div></div>
 {% endif %}
 {% if ai_error %}
 <div class="alert alert-danger">AI 초안을 만들지 못했습니다. 잠시 후 다시 시도하거나 아래 칸에 직접 답변을 작성해 주세요.</div>
@@ -22,12 +36,12 @@
 <div class="alert alert-danger py-2">{{ e }}</div>
 {% endfor %}
 
-<div class="card card-body">
+<div class="card card-body shadow-sm">
   <div class="d-flex justify-content-between align-items-center mb-2">
     <h2 class="h6 mb-0">답변</h2>
     {% if inquiry.status == '미응답' %}
     <form method="post" action="/owner/inquiries/{{ inquiry.id }}/draft">
-      <button class="btn btn-sm btn-outline-primary">{{ 'AI 초안 다시 만들기' if inquiry.ai_draft else 'AI 초안 생성' }}</button>
+      <button class="btn btn-sm {{ 'btn-outline-primary' if inquiry.ai_draft else 'btn-primary' }}">✨ {{ 'AI 초안 다시 만들기' if inquiry.ai_draft else 'AI 초안 생성' }}</button>
     </form>
     {% endif %}
   </div>
@@ -58,21 +72,23 @@
   </div>
   {% endif %}
 
-  {# F-03-4 수정·발송 완료·복사, F-03-5 직접 작성 #}
+  {# F-03-4 수정·발송·재발송·복사, F-03-5 직접 작성 #}
   <form method="post" action="/owner/inquiries/{{ inquiry.id }}/answer">
     <textarea id="answer" name="answer" class="form-control" rows="7" maxlength="{{ max_answer_length }}"
               placeholder="고객에게 보낼 답변을 입력하세요.">{{ answer }}</textarea>
     <div class="d-flex gap-2 mt-2">
-      <button class="btn btn-primary">{{ '답변 수정 저장' if inquiry.status != '미응답' else '발송 완료' }}</button>
+      <button class="btn btn-primary" data-send-btn>{{ '수정 후 재발송' if inquiry.status != '미응답' else '발송' }}</button>
       <button type="button" class="btn btn-outline-secondary" id="copy-btn">답변 복사</button>
       <span class="text-muted small align-self-center" id="copy-msg"></span>
     </div>
   </form>
   {% if inquiry.ai_draft and inquiry.status == '미응답' %}
-  <p class="text-muted small mt-2 mb-0">AI가 만든 초안입니다. 확인·수정한 뒤 "발송 완료"를 누르세요. AI 원본은 검증용으로 따로 보관됩니다.</p>
+  <p class="text-muted small mt-2 mb-0">AI가 만든 초안입니다. 확인·수정한 뒤 "발송"을 누르세요. AI 원본은 검증용으로 따로 보관됩니다.</p>
   {% endif %}
 </div>
 
+</div>
+</div>
 <script>
   // 답변 복사 (F-03-4). 클립보드 API를 못 쓰는 환경(http 등)에서는 선택 후 복사로 대체한다.
   document.getElementById("copy-btn").addEventListener("click", async () => {

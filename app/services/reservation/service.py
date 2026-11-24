@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from app.models.models import Customer, Reservation, ReservationHistory, Store
 from app.repositories.reservation_repository import ReservationRepository
 from app.services.notification import Notifier, NullNotifier
+from app.services.phone import phone_digits
 from app.services.reservation.schemas import ReservationCreate, ReservationSlot
 from app.services.reservation.states import ReservationStatus, state_of
 
@@ -21,7 +22,16 @@ ACTIONS = ("confirm", "visit", "no_show", "cancel", "change")
 # 점주가 누를 수 있는 동작. '변경'은 고객만 한다. (F-02-3, F-02-4)
 OWNER_ACTIONS = ("confirm", "visit", "no_show", "cancel")
 WEEKDAYS = "월화수목금토일"
-NEW_MARK = "신규"  # 생성 이력의 '이전 상태' 자리에 쓴다.
+NEW_MARK = "신규"
+MAX_REASON_LENGTH = 15  # 점주 취소 사유 최대 글자 수 (문자를 단문 90바이트에 맞춘다)
+MAX_NOTE_LENGTH = 50  # 확정할 때 손님에게 남기는 한마디 (문자에는 안 넣고 '내 예약' 화면에 보인다)
+# 점주가 취소할 때 고르는 사유. 직접 입력도 할 수 있다.
+CANCEL_REASONS = (
+    "재료 소진",
+    "임시 휴무",
+    "자리 부족",
+    "고객 요청",
+)  # 생성 이력의 '이전 상태' 자리에 쓴다.
 
 
 class ReservationRejectedError(Exception):
@@ -65,28 +75,38 @@ class ReservationService:
         self.notifier = notifier or NullNotifier()  # 문자 알림. 라우터가 실제 알림기를 넣는다.
 
     # ----- 상태 전이 (F-02-4, F-02-5) -----
-    def apply(self, reservation: Reservation, action: str) -> Reservation:
+    def apply(self, reservation: Reservation, action: str, memo: str | None = None) -> Reservation:
         """상태 전이를 적용하고 이력을 남긴다. 허용되지 않으면 InvalidTransitionError."""
         if action not in ACTIONS:
             raise ValueError(f"알 수 없는 동작: {action}")
         current = state_of(reservation.status)
         next_state = getattr(current, action)()
         reservation.histories.append(
-            ReservationHistory(from_status=current.status.value, to_status=next_state.status.value)
+            ReservationHistory(
+                from_status=current.status.value, to_status=next_state.status.value, memo=memo
+            )
         )
         reservation.status = next_state.status.value
         self.repo.save()
         return reservation
 
-    def process(self, reservation_id: int, action: str) -> Reservation:
-        """점주 처리: 확정·방문완료·노쇼·취소."""
+    def process(self, reservation_id: int, action: str, reason: str | None = None) -> Reservation:
+        """점주 처리: 확정·방문완료·노쇼·취소.
+
+        reason: 확정 한마디·취소 사유·노쇼 메모. 이력에 남기고, 취소 사유는 손님 문자에도 넣는다.
+        확정 한마디는 길 수 있어 문자에는 넣지 않고 손님 '내 예약 조회' 화면에 보여 준다.
+        문자를 단문(90바이트)에 맞추려고 MAX_REASON_LENGTH 글자까지만 쓴다.
+        """
         if action not in OWNER_ACTIONS:
             raise ValueError(f"점주가 할 수 없는 동작: {action}")
-        reservation = self.apply(self.get(reservation_id), action)
-        if action == "confirm":
-            self.notifier.reservation_confirmed(reservation)
+        limit = MAX_NOTE_LENGTH if action == "confirm" else MAX_REASON_LENGTH
+        reason = (reason or "").strip()[:limit] or None
+        memo = reason if action in ("confirm", "cancel", "no_show") else None
+        reservation = self.apply(self.get(reservation_id), action, memo)
+        if action == "confirm":  # 한마디가 있으면 문자에 '내 예약에서 확인' 안내를 붙인다
+            self.notifier.reservation_confirmed(reservation, has_note=reason is not None)
         elif action == "cancel":
-            self.notifier.reservation_cancelled_by_owner(reservation)
+            self.notifier.reservation_cancelled_by_owner(reservation, reason)
         return reservation
 
     # ----- 고객: 신청·조회·변경·취소 (F-02-1, F-02-3) -----
@@ -111,9 +131,11 @@ class ReservationService:
     def find_by_phone(self, phone: str) -> list[Reservation]:
         return self.repo.list_by_phone(phone)
 
-    def change(self, reservation_id: int, phone: str, slot: ReservationSlot) -> Reservation:
+    def change(
+        self, reservation_id: int, phone: str, slot: ReservationSlot, name: str | None = None
+    ) -> Reservation:
         """날짜·시간·인원 변경. 확정된 예약도 다시 '요청'이 되어 점주가 재확정한다."""
-        reservation = self.get_owned(reservation_id, phone)
+        reservation = self.get_owned(reservation_id, phone, name)
         state_of(reservation.status).change()  # 변경 불가 상태면 정원 검사 전에 거부
         self.check_slot(
             reservation.store, slot.reserved_at, slot.party_size, exclude_id=reservation.id
@@ -125,8 +147,10 @@ class ReservationService:
         self.notifier.reservation_changed(reservation, old_at, old_party)
         return reservation
 
-    def cancel_by_customer(self, reservation_id: int, phone: str) -> Reservation:
-        reservation = self.apply(self.get_owned(reservation_id, phone), "cancel")
+    def cancel_by_customer(
+        self, reservation_id: int, phone: str, name: str | None = None
+    ) -> Reservation:
+        reservation = self.apply(self.get_owned(reservation_id, phone, name), "cancel")
         self.notifier.reservation_cancelled_by_customer(reservation)
         return reservation
 
@@ -167,12 +191,27 @@ class ReservationService:
             raise ReservationNotFoundError(f"예약을 찾을 수 없습니다 (id={reservation_id})")
         return reservation
 
-    def get_owned(self, reservation_id: int, phone: str) -> Reservation:
-        """연락처가 다르면 '없음'과 똑같이 처리해 다른 사람 예약이 있는지 드러내지 않는다."""
+    def get_owned(self, reservation_id: int, phone: str, name: str | None = None) -> Reservation:
+        """연락처(와 이름)가 다르면 '없음'과 똑같이 처리해 다른 사람 예약이 있는지 드러내지 않는다.
+
+        고객 화면은 이름도 넘긴다. 번호만 알면 남의 예약을 보거나 취소할 수 있어서다.
+        """
         reservation = self.repo.get(reservation_id)
-        if reservation is None or reservation.customer.phone != phone:
-            raise ReservationNotFoundError("예약을 찾을 수 없습니다. 연락처를 확인해 주세요.")
+        if (
+            reservation is None
+            or phone_digits(reservation.customer.phone) != phone_digits(phone)
+            or (name is not None and not same_name(reservation.customer.name, name))
+        ):
+            raise ReservationNotFoundError(
+                "예약을 찾을 수 없습니다. 연락처를 확인해 주세요."
+                if name is None
+                else "예약을 찾을 수 없어요. 이름과 연락처를 확인해 주세요."
+            )
         return reservation
+
+    def find_owned(self, phone: str, name: str) -> list[Reservation]:
+        """고객 화면 조회: 번호와 이름이 모두 맞는 예약만."""
+        return [r for r in self.repo.list_by_phone(phone) if same_name(r.customer.name, name)]
 
     def list_for_store(self, store_id: int, status: str | None = None) -> list[Reservation]:
         return self.repo.list_by_store(store_id, status)
@@ -189,6 +228,11 @@ class ReservationService:
         if store is None:
             raise StoreNotFoundError(f"매장을 찾을 수 없습니다 (id={store_id})")
         return store
+
+
+def same_name(a: str, b: str) -> bool:
+    """띄어쓰기는 무시하고 이름을 비교한다. ('홍 길동' == '홍길동')"""
+    return "".join((a or "").split()) == "".join((b or "").split())
 
 
 def _closed_days(store: Store) -> set[str]:

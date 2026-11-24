@@ -3,111 +3,175 @@
 {% block content %}
 <style>
   .dashboard-content-text {
-    white-space: normal;
-    overflow-wrap: anywhere;
-    word-break: break-word;
-    max-width: 100%;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
-    overflow: hidden;
+    white-space: normal; overflow-wrap: anywhere; word-break: break-word; max-width: 100%;
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
   }
-  .dashboard-content-row {
-    min-width: 0;
-    max-width: 100%;
-  }
+  .dashboard-content-row { min-width: 0; max-width: 100%; }
+  .kpi { transition: transform .15s, box-shadow .15s; }
+  .kpi:hover { transform: translateY(-2px); box-shadow: 0 .5rem 1rem rgba(43, 29, 20, .08) !important; }
+  .kpi-icon { width: 44px; height: 44px; border-radius: .8rem; display: flex; align-items: center;
+              justify-content: center; font-size: 1.35rem; background: var(--brand-soft); }
+  .kpi-value { font-size: 2.2rem; font-weight: 700; line-height: 1.1; }
+  /* 오늘 타임라인: 영업 시작~마감을 가로 막대로 */
+  .timeline { position: relative; height: 44px; margin: 0 6px; }
+  .timeline-track { position: absolute; top: 20px; left: 0; right: 0; height: 4px; background: #ece4dc; border-radius: 2px; }
+  .timeline-tick { position: absolute; top: 30px; transform: translateX(-50%); font-size: .7rem; color: #8a7b70;
+                   white-space: nowrap; }
+  .timeline-dot { position: absolute; top: 14px; width: 16px; height: 16px; border-radius: 50%;
+                  transform: translateX(-50%); border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.1); }
+  /* 같은 시각 예약이 여러 건이면 점 하나를 키우고 건수를 적는다 (점이 겹쳐 1건처럼 보이지 않게) */
+  .timeline-dot.is-many { top: 10px; width: 24px; height: 24px; font-size: .7rem; font-weight: 700;
+                          color: #fff; display: flex; align-items: center; justify-content: center; }
+  /* 7일 막대그래프 */
+  .week { display: flex; align-items: flex-end; gap: .5rem; height: 150px; }
+  .week-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+  .week-bar { width: 100%; max-width: 36px; background: var(--accent); border-radius: .4rem .4rem 0 0; min-height: 3px; }
+  .week-col.is-today .week-bar { background: var(--brand); }
+  .week-col { border-radius: .5rem; padding-top: .25rem; transition: background .15s; }
+  .week-col:hover { background: var(--brand-soft); }
+  .week-col:hover .week-bar { filter: brightness(.9); }
+  .week-count { font-size: .75rem; font-weight: 700; color: var(--brand-dark); margin-bottom: .2rem; }
+  .week-day { font-size: .7rem; color: #8a7b70; margin-top: .3rem; white-space: nowrap; text-align: center; }
 </style>
-<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+{% set badge = {'요청': 'text-bg-warning', '확정': 'text-bg-primary', '방문완료': 'text-bg-success',
+                '취소': 'text-bg-secondary', '노쇼': 'text-bg-danger'} %}
+{% set dot = {'요청': '#ffc107', '확정': '#6f4e37', '방문완료': '#198754', '취소': '#adb5bd', '노쇼': '#dc3545'} %}
+{% set wd = '월화수목금토일' %}
+
+<div class="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-4">
   <div>
-    <h1 class="h4 mb-1">매장 현황</h1>
-    <p class="text-muted small mb-0">{{ today.strftime('%Y년 %m월 %d일') }}</p>
+    <p class="text-muted small mb-1">{{ today.strftime('%Y년 %m월 %d일') }} ({{ wd[today.weekday()] }})</p>
+    <h1 class="h3 fw-bold mb-0">안녕하세요, 사장님 👋</h1>
   </div>
   <a class="btn btn-sm btn-outline-primary" href="/owner/store">매장 정보 관리</a>
 </div>
 
-<!-- 요약 카드 -->
+{% macro summary_card(href, icon, title, value, sub='', highlight=false, attr='') %}
+  <div class="col-6 col-xl-3">
+    <a href="{{ href }}" class="text-decoration-none text-reset" {{ attr|safe }}>
+      <div class="card kpi h-100 shadow-sm{% if highlight %} border-warning border-2{% endif %}">
+        <div class="card-body">
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <div class="kpi-icon" aria-hidden="true">{{ icon }}</div>
+            <h2 class="h6 text-muted mb-0">{{ title }}</h2>
+          </div>
+          <div class="kpi-value">{{ value }}<span class="fs-6 fw-semibold text-muted ms-1">건</span></div>
+          {% if sub %}<div class="small mt-1 {{ 'text-warning-emphasis fw-semibold' if highlight else 'text-muted' }}">{{ sub }}</div>{% endif %}
+        </div>
+      </div>
+    </a>
+  </div>
+{% endmacro %}
+
+<!-- 요약 카드: 오늘 할 일이 먼저 보이게 -->
 <div class="row g-3 mb-4">
-  <div class="col-md-4">
-    <a href="/owner/reservations" class="text-decoration-none text-reset">
-      <div class="card h-100 shadow-sm">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <h2 class="h6 text-muted mb-2">다가오는 예약</h2>
-            <span class="badge text-bg-primary">예약 관리</span>
-          </div>
-          <p class="display-6 fw-semibold mb-2">{{ reservations|length }}건</p>
-          <div class="d-flex flex-wrap gap-2 small">
-            {% for label, count in status_counts.items() %}
-            <span class="text-muted">{{ label }} {{ count }}</span>
-            {% endfor %}
-          </div>
+  {% set today_extra = today_counts.items()|map('join', ' ')|join(' · ') %}
+  {{ summary_card('/owner/reservations?view=today', '📅', '오늘 예약', today_reservations|length,
+                  today_extra or '오늘 예약이 없어요', attr='data-card="today"') }}
+  {{ summary_card('/owner/reservations?status=요청', '⏳', '확정 대기', pending,
+                  '눌러서 바로 확정하세요 →' if pending else '모두 처리했어요', highlight=pending > 0, attr='data-card="pending"') }}
+  {{ summary_card('/owner/inquiries', '💬', '미응답 문의', unanswered,
+                  'AI 초안으로 빠르게 답하세요 →' if unanswered else '모두 답했어요', highlight=unanswered > 0, attr='data-card="unanswered"') }}
+  {{ summary_card('/owner/marketing', '✨', '홍보 콘텐츠', contents_count, 'AI 생성 문구', attr='data-card="contents"') }}
+</div>
+
+<div class="row g-3 mb-4">
+  <!-- F-05-1 오늘 예약 (타임라인 + 목록) -->
+  <div class="col-lg-7">
+    <section class="card shadow-sm h-100" data-today-list>
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h2 class="h6 mb-0">오늘 예약 <span class="text-muted small">{{ today.strftime('%m/%d') }}</span></h2>
+        <a class="small" href="/owner/reservations?view=today">오늘 예약 관리</a>
+      </div>
+      {% set open_m = open_time.hour * 60 + open_time.minute %}
+      {% set span = ((close_time.hour * 60 + close_time.minute) - open_m) or 1 %}
+      <div class="card-body pb-2" data-timeline>
+        <div class="timeline">
+          <div class="timeline-track"></div>
+          {% for h in range(open_time.hour, close_time.hour + 1, 3) %}
+          <span class="timeline-tick" style="left: {{ ((h * 60 - open_m) / span * 100)|round(1) }}%;">{{ h }}시</span>
+          {% endfor %}
+          {% for at, group in today_reservations|groupby('reserved_at') %}
+          {% set m = at.hour * 60 + at.minute - open_m %}
+          {% set pos = [[m / span * 100, 0]|max, 100]|min %}
+          {# 여러 건이면 아직 처리할 게 있는 상태(요청 > 확정 > 그 외) 색으로 칠한다 #}
+          {% set statuses = group|map(attribute='status')|list %}
+          {% set color = dot['요청'] if '요청' in statuses else (dot['확정'] if '확정' in statuses else dot.get(statuses[0], '#adb5bd')) %}
+          <span class="timeline-dot{% if group|length > 1 %} is-many{% endif %}" data-timeline-dot
+                style="left: {{ pos|round(1) }}%; background: {{ color }};"
+                title="{% for r in group %}{{ at.strftime('%H:%M') }} {{ r.customer.name }} {{ r.party_size }}명 ({{ r.status }}){% if not loop.last %}&#10;{% endif %}{% endfor %}">{% if group|length > 1 %}{{ group|length }}{% endif %}</span>
+          {% endfor %}
         </div>
       </div>
-    </a>
+      {% if today_reservations %}
+      <div class="list-group list-group-flush">
+        {% for r in today_reservations %}
+        <a class="list-group-item list-group-item-action d-flex align-items-center gap-3" href="/owner/reservations/{{ r.id }}">
+          <span class="fw-semibold text-nowrap">{{ r.reserved_at.strftime('%H:%M') }}</span>
+          <span class="flex-grow-1">{{ r.customer.name }} · {{ r.party_size }}명
+            {% if r.request %}<span class="small text-muted d-block">{{ r.request }}</span>{% endif %}</span>
+          <span class="badge {{ badge.get(r.status, 'text-bg-secondary') }}">{{ r.status }}</span>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="card-body pt-0 text-muted">오늘 예약이 없습니다.</div>
+      {% endif %}
+    </section>
   </div>
-  <div class="col-md-4">
-    <a href="/owner/inquiries" class="text-decoration-none text-reset">
-      <div class="card h-100 shadow-sm">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <h2 class="h6 text-muted mb-2">미응답 문의</h2>
-            <span class="badge text-bg-warning">문의함</span>
-          </div>
-          <p class="display-6 fw-semibold mb-0">{{ unanswered }}건</p>
+
+  <!-- 앞으로 7일 예약 수 -->
+  <div class="col-lg-5">
+    <section class="card shadow-sm h-100" data-week>
+      <div class="card-header bg-white">
+        <h2 class="h6 mb-0">앞으로 7일 예약 <span class="text-muted small">취소·노쇼 제외 · 막대를 누르면 그날 예약</span></h2>
+      </div>
+      <div class="card-body">
+        {% set peak = (week|map(attribute=1)|max) if week else 0 %}
+        <div class="week">
+          {% for day, n in week %}
+          {# 막대를 누르면 그날 예약 목록으로 간다 #}
+          <a class="week-col text-decoration-none{% if loop.first %} is-today{% endif %}" data-week-day
+             href="/owner/reservations?day={{ day.isoformat() }}" title="{{ day.strftime('%m/%d') }} {{ n }}건 — 눌러서 보기">
+            <span class="week-count">{{ n }}</span>
+            <div class="week-bar" style="height: {{ (n / peak * 100)|round(0) if peak else 0 }}%;"></div>
+            <span class="week-day">{{ '오늘' if loop.first else day.strftime('%m/%d') }}<br>{{ wd[day.weekday()] }}</span>
+          </a>
+          {% endfor %}
         </div>
       </div>
-    </a>
-  </div>
-  <div class="col-md-4">
-    <a href="/owner/marketing" class="text-decoration-none text-reset">
-      <div class="card h-100 shadow-sm">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <h2 class="h6 text-muted mb-2">최근 생성 콘텐츠</h2>
-            <span class="badge text-bg-success">홍보 문구</span>
-          </div>
-          <p class="display-6 fw-semibold mb-0">{{ contents_count }}건</p>
-        </div>
-      </div>
-    </a>
+    </section>
   </div>
 </div>
 
 <!-- 다가오는 예약 목록 -->
 <section class="card shadow-sm mb-4">
   <div class="card-header bg-white d-flex justify-content-between align-items-center">
-    <h2 class="h6 mb-0">다가오는 예약 목록</h2>
+    <h2 class="h6 mb-0">다가오는 예약 <span class="text-muted small">요청·확정 {{ reservations|length }}건</span></h2>
     <a class="small" href="/owner/reservations">전체 예약 보기</a>
   </div>
   {% if reservations %}
   <div class="table-responsive">
     <table class="table table-hover align-middle mb-0">
-      <thead class="table-light">
+      <thead>
         <tr><th>일시</th><th>고객</th><th>인원</th><th>요청 사항</th><th>상태</th></tr>
       </thead>
       <tbody>
-      {% for r in reservations %}
+      {% for r in reservations[:8] %}
         <tr onclick="location.href='/owner/reservations/{{ r.id }}'" style="cursor:pointer;">
-          <td class="text-nowrap">{{ r.reserved_at.strftime('%m/%d %H:%M') }}</td>
-          <td class="text-nowrap">{{ r.customer.name }}</td>
-          <td>{{ r.party_size }}명</td>
-          <td>{{ r.request or '-' }}</td>
-          <td>
-            {% set badge = {
-              '요청': 'text-bg-warning',
-              '확정': 'text-bg-primary',
-              '방문완료': 'text-bg-success',
-              '취소': 'text-bg-secondary',
-              '노쇼': 'text-bg-danger'
-            } %}
-            <span class="badge {{ badge.get(r.status, 'text-bg-secondary') }}">{{ r.status }}</span>
-          </td>
+          <td class="text-nowrap">{{ r.reserved_at.strftime('%m/%d') }}({{ wd[r.reserved_at.weekday()] }}) {{ r.reserved_at.strftime('%H:%M') }}</td>
+          <td class="text-nowrap fw-semibold">{{ r.customer.name }}</td>
+          <td class="text-nowrap">{{ r.party_size }}명</td>
+          <td class="text-muted">{{ r.request or '-' }}</td>
+          <td><span class="badge {{ badge.get(r.status, 'text-bg-secondary') }}">{{ r.status }}</span></td>
         </tr>
       {% endfor %}
       </tbody>
     </table>
   </div>
+  {% if reservations|length > 8 %}
+  <div class="card-footer bg-white text-center small"><a href="/owner/reservations">{{ reservations|length - 8 }}건 더 보기 →</a></div>
+  {% endif %}
   {% else %}
   <div class="card-body text-muted">오늘 이후 요청 또는 확정된 예약이 없습니다.</div>
   {% endif %}

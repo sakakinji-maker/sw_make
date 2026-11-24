@@ -1,16 +1,22 @@
 {% extends "base.html" %}
 {% block title %}문의 접수 완료{% endblock %}
 {% block content %}
-<div class="card card-body">
-  <h1 class="h4">문의가 접수되었습니다</h1>
-  <p class="mb-1">접수 번호: <strong>{{ inquiry.id }}</strong></p>
-  <p class="text-muted">매장에서 답변을 등록하면 '내 문의'에서 연락처({{ inquiry.customer.phone }})로 확인할 수 있습니다.</p>
-  <div class="d-flex gap-2">
+<div class="mx-auto" style="max-width: 640px;">
+<div class="card card-body text-center py-4">
+  <div class="fs-1 mb-2">💬</div>
+  <h1 class="h4">문의가 접수되었어요</h1>
+  <p class="text-muted mb-4">
+    매장에서 답변을 등록하면 {{ inquiry.customer.phone }}(으)로 문자로 알려 드려요.<br>
+    '내 문의'에서도 언제든 확인할 수 있어요.
+  </p>
+  <div class="d-flex gap-2 justify-content-center">
     <form method="post" action="/inquiries/lookup">
       <input type="hidden" name="phone" value="{{ inquiry.customer.phone }}">
+      <input type="hidden" name="name" value="{{ inquiry.customer.name }}">
       <button class="btn btn-primary">내 문의 확인</button>
     </form>
     <a href="/" class="btn btn-outline-secondary">처음으로</a>
   </div>
+</div>
 </div>
 {% endblock %}

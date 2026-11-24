@@ -274,9 +274,9 @@ def test_pages_open(client):
 
 def test_submit_and_lookup(client, session):
     res = client.post("/reservations", data=form(cafe(session).id))
-    assert res.status_code == 200 and "예약을 신청했습니다" in res.text
-    res = client.post("/reservations/lookup", data={"phone": PHONE})
-    assert "브루밍 카페" in res.text and "2026-11-11 12:00" in res.text
+    assert res.status_code == 200 and "예약 신청이 접수되었어요" in res.text
+    res = client.post("/reservations/lookup", data={"phone": PHONE, "name": "테스트"})
+    assert "11/11(수)" in res.text and "12:00 · 2명" in res.text  # 예약 카드 (11/24 화면 개선)
 
 
 def test_submit_rejected_shows_reason(client, session):
@@ -287,10 +287,13 @@ def test_submit_rejected_shows_reason(client, session):
 def test_customer_change_and_cancel(client, session):
     client.post("/reservations", data=form(cafe(session).id))
     rid = session.query(Reservation).filter(Reservation.customer.has(phone=PHONE)).one().id
-    change = {"phone": PHONE, "visit_date": "2026-11-12", "visit_time": "18:00", "party_size": "3"}
+    change = {"phone": PHONE, "name": "테스트", "visit_date": "2026-11-12"}
+    change |= {"visit_time": "18:00", "party_size": "3"}
     res = client.post(f"/reservations/{rid}/change", data=change)
-    assert "예약을 변경했습니다" in res.text and "2026-11-12 18:00" in res.text
-    res = client.post(f"/reservations/{rid}/cancel", data={"phone": PHONE})
+    assert (
+        "예약을 변경했습니다" in res.text and "11/12(목)" in res.text and "18:00 · 3명" in res.text
+    )
+    res = client.post(f"/reservations/{rid}/cancel", data={"phone": PHONE, "name": "테스트"})
     assert "예약을 취소했습니다" in res.text
 
 
@@ -312,5 +315,19 @@ def test_owner_process_and_invalid_transition(client, session):
 
 
 def test_lookup_unknown_phone_shows_empty_message(client):
-    res = client.post("/reservations/lookup", data={"phone": "010-1111-2222"})
-    assert res.status_code == 200 and "이 연락처로 된 예약이 없습니다." in res.text
+    res = client.post("/reservations/lookup", data={"phone": "010-1111-2222", "name": "테스트"})
+    assert res.status_code == 200 and "이 이름과 연락처로 된 예약이 없어요." in res.text
+
+
+def test_lookup_needs_matching_name(client, session):
+    """번호만 알아서는 남의 예약을 보거나 취소할 수 없다 (이름도 맞아야 한다)."""
+    client.post("/reservations", data=form(cafe(session).id))
+    rid = session.query(Reservation).filter(Reservation.customer.has(phone=PHONE)).one().id
+    wrong = client.post("/reservations/lookup", data={"phone": PHONE, "name": "남이름"})
+    assert "data-reservation" not in wrong.text
+    spaced = client.post("/reservations/lookup", data={"phone": PHONE, "name": "테 스트"})
+    assert "data-reservation" in spaced.text  # 띄어쓰기는 무시
+    res = client.post(f"/reservations/{rid}/cancel", data={"phone": PHONE, "name": "남이름"})
+    assert res.status_code == 404 and "이름과 연락처를 확인해 주세요" in res.text
+    missing = client.post("/reservations/lookup", data={"phone": PHONE})
+    assert missing.status_code == 400 and "이름과 연락처를 모두 입력해 주세요" in missing.text
