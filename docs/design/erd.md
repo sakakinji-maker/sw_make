@@ -2,8 +2,9 @@
 
 - 프로젝트: 소상공인용 AI 마케팅·고객응대 통합 지원 시스템
 - 작성자: 전지호
-- 작성 기간: 2026. 11. 3. ~ 11. 8.
+- 작성 기간: 2026. 11. 3. ~ 11. 8. (최종 갱신 2026. 11. 25., 한재형 — [9. 변경 이력](#9-변경-이력) 참고)
 - 기준 코드: `app/models/models.py` (`sakakinji-maker/sw_make`, `main` 브랜치 확인본)
+- 제출용 산출물: [`docs/database/`](../database/) (`schema.sql`, `sample_data.sql`, `sample.db`)
 
 ## 1. 설계 범위 및 기준
 
@@ -70,6 +71,7 @@ erDiagram
         string from_status
         string to_status
         datetime changed_at
+        string memo "nullable"
     }
     INQUIRIES {
         int id PK
@@ -161,6 +163,7 @@ erDiagram
 | from_status | VARCHAR(10) | 불가 | | 변경 전 상태 |
 | to_status | VARCHAR(10) | 불가 | | 변경 후 상태 |
 | changed_at | DATETIME | 불가 | Python default `datetime.now` | 변경 시각 |
+| memo | VARCHAR(100) | 가능 | Python default `None` | 확정 한마디(50자)·취소 사유(15자)·노쇼 메모 (11/24 추가) |
 
 ### 3.7 inquiries (고객 문의)
 
@@ -211,7 +214,7 @@ erDiagram
 3. 채널 전략이 글자 수와 해시태그 수를 검사한다.
 4. 점주가 결과를 확인·수정한 뒤 저장한다.
 5. 최종 저장 내용은 `marketing_contents`에 기록하도록 설계한다.
-6. **현재 코드 상태:** `MarketingContent` 모델은 있으나 `MarketingService`의 저장·목록 조회는 TODO이며 Repository 구현도 확인되지 않았다.
+6. **구현 상태(11/25):** `MarketingService.save()`·`list_saved()`가 `marketing_repository`를 통해 `marketing_contents`에 저장·조회한다. 규칙 위반 목록은 `check_result`에 함께 저장한다.
 
 ### F-05 대시보드
 
@@ -219,7 +222,7 @@ erDiagram
 - 미응답 문의 수: `inquiries.store_id`와 `status = '미응답'` 조건으로 집계한다.
 - 최근 콘텐츠: `marketing_contents.store_id` 조건으로 `saved_at` 내림차순 정렬 후 5건을 조회한다.
 - 대시보드 전용 테이블은 만들지 않고 기존 테이블을 조회한다.
-- **현재 코드 상태:** `/owner` 라우트는 존재하지만 빈 예약 목록, 미응답 수 0, 빈 콘텐츠 목록을 전달한다. 위 집계 조회는 아직 구현된 것으로 확인되지 않았다.
+- **구현 상태(11/25):** `DashboardService`가 위 조회와 함께 오늘 예약 타임라인, 확정 대기 수, 앞으로 7일 예약 수(취소·노쇼 제외)를 기존 테이블에서 집계한다.
 
 ## 6. 데이터 무결성 및 운영 기준
 
@@ -237,7 +240,30 @@ erDiagram
 - [x] 각 외래키와 SQLAlchemy relationship 반영
 - [x] `inquiries`의 nullable 필드 3개 반영
 - [x] `marketing_contents.check_result` nullable 반영
-- [ ] 실제 생성된 SQLite 스키마와 컬럼·제약조건 최종 대조
-- [ ] 마이그레이션 또는 스키마 변경 이력 확인
+- [x] 실제 생성된 SQLite 스키마와 컬럼·제약조건 최종 대조 (11/25, `docs/database/schema.sql`. 테스트 `tests/test_database_export.py`가 모델과 다르면 실패)
+- [x] 마이그레이션 또는 스키마 변경 이력 확인 (아래 9절. 예전 DB 파일에는 서버 시작 시 `add_missing_columns()`가 빠진 칸을 추가)
 
-체크된 항목은 코드 정의를 확인했다는 뜻이며, 실제 DB 파일을 열어 검증했다는 뜻은 아니다.
+## 8. 샘플 데이터 (가상 데이터)
+
+모두 프로젝트에서 만든 가상 데이터이며 실제 개인정보는 없다. 원본은 `app/db/seed_data/*.json`, 적재 결과는 `docs/database/sample.db`.
+
+| 테이블 | 건수 | 구성 |
+|---|---|---|
+| stores | 1 | 브루밍 카페 (09:00~21:00, 월요일 휴무, 시간당 정원 10명) |
+| menu_items | 12 | 음료 8, 디저트 4 |
+| faqs | 20 | 주차·단체 예약·포장·노트북 등 |
+| customers | 73 | 예약·문의 고객 (연락처 기준으로 같은 고객) |
+| reservations | 75 | 요청 20, 확정 10, 방문완료 32, 노쇼 9, 취소 4. 발표일(12/8) 기준 지난 예약·당일·7일 예약 구성 |
+| reservation_histories | 171 | 예약 상태에 맞춰 신규 → 요청 → 확정 → 최종 상태 이력 |
+| inquiries | 30 | 가격·영업시간·근거 없음 질문 각 10건 (AI 검증 실험용) |
+| marketing_contents | 0 | 화면에서 생성할 때 쌓인다 |
+
+적재: `python -m app.db.seed --reset` (서버를 처음 켤 때 DB가 비어 있으면 자동 적재)
+
+## 9. 변경 이력
+
+| 날짜 | 변경 | 사유 |
+|---|---|---|
+| 11/3~11/8 | 최초 작성 (엔티티 8개) | 11주차 설계 |
+| 11/24 | `reservation_histories.memo` 추가 | 점주 취소 사유·노쇼 메모, 확정 한마디 저장 |
+| 11/25 | 구현 상태 갱신, 샘플 데이터 요약, 제출용 `docs/database/` 추가 | 14주차 최종 산출물 |

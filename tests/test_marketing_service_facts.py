@@ -76,3 +76,30 @@ def test_marketing_service_detects_unregistered_menu():
     )
 
     assert any("Unregistered menu name" in violation for violation in result.violations)
+
+
+def _menu_violations(response: str) -> list[str]:
+    service = MarketingService(MockAIClient(fixed_response=response))
+    result = service.generate(
+        channel="sms",
+        target="일반 고객",
+        keywords=["아메리카노"],
+        store=create_store(),
+        menus=[create_menu()],
+    )
+    return [v for v in result.violations if v.startswith("Unregistered")]
+
+
+def test_generic_words_are_not_menu_names():
+    """D-29: 11/25 재실험 블로그에서 잘못 잡힌 표현."""
+    response = (
+        "추천 메뉴는 아메리카노이며 가격은 4,500원입니다. "
+        "부드러운 맛이 돋보이는 이 음료는 4,500원입니다. "
+        "오늘의 주인공은 4,500원입니다. "
+        "함께 즐기기에 좋은 아메리카노는 4,500원입니다."
+    )
+    assert _menu_violations(response) == []
+
+
+def test_unregistered_menu_still_detected_after_generic_filter():
+    assert _menu_violations("오늘은 바닐라라떼가 5,000원입니다.") != []

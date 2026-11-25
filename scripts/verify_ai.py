@@ -119,6 +119,11 @@ class DraftRecord:
     seconds: float
 
 
+# 자동 채점 단서. 11/25 재실험부터 없는 메뉴는 "판매하지 않는 메뉴"로 안내한다. (D-31)
+REFER_WORDS = ("직접 문의", "문의해 주")
+NOT_SOLD_WORDS = ("판매하지 않", "판매를 하지 않")
+
+
 def expected_found(draft: str, expected: dict[str, Any]) -> bool:
     """seed_data의 expected 값이 초안에 모두 나타나는지 본다. (자동 정답 확인)"""
     checks: list[bool] = []
@@ -130,8 +135,8 @@ def expected_found(draft: str, expected: dict[str, Any]) -> bool:
     for day in expected.get("closed_days", ""):
         if day.strip(","):
             checks.append(f"{day}요일" in draft)
-    if not checks:  # 매장 정보에 없는 질문 → 직접 문의 안내가 정답
-        checks.append("직접 문의" in draft or "문의해 주" in draft)
+    if not checks:  # 매장 정보에 없는 질문 → 판매하지 않음 또는 직접 문의 안내가 정답 (D-31)
+        checks.append(any(word in draft for word in NOT_SOLD_WORDS + REFER_WORDS))
     return all(checks)
 
 
@@ -190,7 +195,7 @@ def extra_expected_found(draft: str, expected: dict[str, Any]) -> bool | None:
     checks += [any(word in draft for word in group) for group in expected.get("keywords", [])]
     checks += [word not in draft for word in expected.get("forbidden", [])]
     if expected.get("refer"):  # 근거 없는 부분은 직접 문의로 안내해야 한다
-        checks.append("직접 문의" in draft or "문의해 주" in draft)
+        checks.append(any(word in draft for word in REFER_WORDS))
     return all(checks)
 
 

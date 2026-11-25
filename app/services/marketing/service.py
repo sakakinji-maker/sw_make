@@ -26,6 +26,8 @@ MENU_PRICE_PATTERN = re.compile(
     r"([가-힣A-Za-z0-9][가-힣A-Za-z0-9\s·()_-]{0,30}?)"
     r"(?:은|는|이|가)\s*(?:가격은\s*)?[\d,]+\s*원"
 )
+# 메뉴 이름 자리에 오지만 메뉴가 아닌 말 (D-29: "가격은 4,500원", "이 음료는 5,500원")
+GENERIC_MENU_WORDS = {"가격", "음료", "메뉴", "디저트", "케이크", "주인공", "제품", "상품", "커피"}
 # 한글 문장에 섞인 일본어 가나 및 한자 계열 문자를 탐지한다.
 NON_KOREAN_CJK_PATTERN = re.compile(r"[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]")
 
@@ -110,7 +112,7 @@ class MarketingService:
             for candidate in candidates:
                 menu_name = candidate.strip()
 
-                if menu_name not in registered_names:
+                if not _is_registered_menu(menu_name, registered_names):
                     violations.append(f"Unregistered menu name: {menu_name}")
 
         return ContentResult(
@@ -177,3 +179,14 @@ class MarketingService:
             store_id=store_id,
             content_id=content_id,
         )
+
+
+def _is_registered_menu(candidate: str, registered_names: set[str]) -> bool:
+    """정규식이 잡은 말이 등록 메뉴(또는 메뉴가 아닌 일반 단어)인지 본다. (D-29)
+
+    정규식은 "추천 메뉴는 아메리카노이며 가격은 4,500원"처럼 앞 문장까지 함께 잡으므로
+    끝이 등록 메뉴 이름이면 인정하고, 마지막 낱말이 "가격", "음료" 같은 일반 단어면 넘어간다.
+    """
+    if any(candidate.endswith(name) for name in registered_names):
+        return True
+    return candidate.split()[-1] in GENERIC_MENU_WORDS

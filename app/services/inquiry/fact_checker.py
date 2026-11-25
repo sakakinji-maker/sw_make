@@ -151,20 +151,20 @@ class FactChecker:
             return self._check_except_days(sentence)
         if self.closed_days and any(w in sentence for w in NO_HOLIDAY_WORDS):
             return [Mismatch("휴무일", "휴무 없음", self._closed_message())]
-        days = WEEKDAY_PATTERN.findall(sentence)
-        if any(w in sentence for w in OFF_WORDS):
-            return [
-                Mismatch("휴무일", f"{d}요일", f"휴무일이 아닙니다 ({self._closed_message()})")
-                for d in days
-                if d not in self.closed_days
-            ]
-        if any(w in sentence for w in OPEN_WORDS):
-            return [
-                Mismatch("휴무일", f"{d}요일", f"이날은 휴무일입니다 ({self._closed_message()})")
-                for d in days
-                if d in self.closed_days
-            ]
-        return []
+        mismatches = []
+        for day, clause in _day_clauses(sentence):
+            # 요일 뒤 구절에 단서가 없으면("월요일, 화요일은 휴무") 문장 전체를 본다.
+            context = clause if _has_any(clause, OFF_WORDS + OPEN_WORDS) else sentence
+            if _has_any(context, OFF_WORDS) and day not in self.closed_days:
+                message = f"휴무일이 아닙니다 ({self._closed_message()})"
+            elif not _has_any(context, OFF_WORDS) and _has_any(context, OPEN_WORDS):
+                if day not in self.closed_days:
+                    continue
+                message = f"이날은 휴무일입니다 ({self._closed_message()})"
+            else:
+                continue
+            mismatches.append(Mismatch("휴무일", f"{day}요일", message))
+        return mismatches
 
     def _check_except_days(self, sentence: str) -> list[Mismatch]:
         """'월요일을 제외하고 매일 영업'처럼 뺀 요일 = 휴무일이라고 말하는 문장."""
@@ -185,3 +185,18 @@ class FactChecker:
 def _quoted(found: str, quoted: str) -> bool:
     """찾은 시각 표현이 고객 문의에 그대로 있었는지 (공백 무시)."""
     return bool(quoted) and found.replace(" ", "") in quoted.replace(" ", "")
+
+
+def _has_any(text: str, words: tuple[str, ...]) -> bool:
+    return any(w in text for w in words)
+
+
+def _day_clauses(sentence: str) -> list[tuple[str, str]]:
+    """요일마다 그 요일부터 다음 요일 앞까지의 구절을 돌려준다. (D-30)
+
+    "월요일은 휴무이며, 화요일부터 정상 영업합니다"에서 화요일을 휴무로 잡지 않도록
+    한 문장 안에서도 요일별로 가까운 단서를 본다.
+    """
+    matches = list(WEEKDAY_PATTERN.finditer(sentence))
+    ends = [m.start() for m in matches[1:]] + [len(sentence)]
+    return [(m.group(1), sentence[m.start() : end]) for m, end in zip(matches, ends, strict=False)]
