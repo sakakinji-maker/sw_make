@@ -2,30 +2,30 @@
   "meta": {
     "provider": "groq",
     "model": "qwen/qwen3.8-27b",
-    "run_at": "2026-11-23 12:04"
+    "run_at": "2026-11-25 14:38"
   },
   "summary": {
     "total": 30,
-    "generated": 30,
-    "ai_errors": 0,
-    "mismatch_drafts": 1,
-    "expected_found": 29,
-    "avg_seconds": 7.7,
+    "generated": 29,
+    "ai_errors": 1,
+    "mismatch_drafts": 3,
+    "expected_found": 21,
+    "avg_seconds": 10.3,
     "by_category": {
       "가격": {
         "n": 10,
-        "mismatch": 1,
+        "mismatch": 0,
         "expected_found": 10
       },
       "영업시간": {
         "n": 10,
-        "mismatch": 0,
+        "mismatch": 3,
         "expected_found": 10
       },
       "근거없음": {
-        "n": 10,
+        "n": 9,
         "mismatch": 0,
-        "expected_found": 9
+        "expected_found": 1
       }
     }
   },
@@ -35,336 +35,348 @@
       "store": "브루밍 카페",
       "category": "가격",
       "content": "아메리카노 한 잔 얼마예요?",
-      "draft": "아메리카노는 4,500원입니다.",
-      "error": null,
-      "mismatches": [],
-      "expected_found": true,
-      "seconds": 1.2
-    },
-    {
-      "id": 2,
-      "store": "브루밍 카페",
-      "category": "가격",
-      "content": "카페라떼 가격이 어떻게 되나요?",
-      "draft": "카페인 라떼 가격은 5,500원입니다.",
-      "error": null,
-      "mismatches": [],
-      "expected_found": true,
-      "seconds": 6.6
-    },
-    {
-      "id": 3,
-      "store": "브루밍 카페",
-      "category": "가격",
-      "content": "말차라떼는 얼마인가요?",
-      "draft": "말차라떼는 6,000원입니다.",
-      "error": null,
-      "mismatches": [],
-      "expected_found": true,
-      "seconds": 6.2
-    },
-    {
-      "id": 4,
-      "store": "브루밍 카페",
-      "category": "가격",
-      "content": "치즈케이크 얼마예요?",
-      "draft": "치즈케이크는 7,000원입니다.\n\n참고로 브루밍 치즈케이크는 하루 20개 한정으로 판매하며, 보통 오후 2~3시 사이에 품절되므로 오전 방문을 권장드립니다.",
-      "error": null,
-      "mismatches": [
-        {
-          "kind": "시각",
-          "found": "3시",
-          "message": "등록된 영업 시작·종료 시각과 다릅니다"
-        }
-      ],
-      "expected_found": true,
-      "seconds": 6.5
-    },
-    {
-      "id": 5,
-      "store": "브루밍 카페",
-      "category": "가격",
-      "content": "브라우니 가격 알 수 있을까요?",
-      "draft": "브라우니 가격은 5,000원입니다.",
-      "error": null,
-      "mismatches": [],
-      "expected_found": true,
-      "seconds": 16.7
-    },
-    {
-      "id": 6,
-      "store": "브루밍 카페",
-      "category": "가격",
-      "content": "딸기스무디는 얼마인가요?",
-      "draft": "딸기스무디 가격은 6,500원입니다.",
-      "error": null,
-      "mismatches": [],
-      "expected_found": true,
-      "seconds": 0.6
-    },
-    {
-      "id": 7,
-      "store": "브루밍 카페",
-      "category": "가격",
-      "content": "자몽에이드 가격이 궁금합니다",
-      "draft": "자몽에이드의 가격은 6,000원입니다.",
-      "error": null,
-      "mismatches": [],
-      "expected_found": true,
-      "seconds": 6.2
-    },
-    {
-      "id": 8,
-      "store": "브루밍 카페",
-      "category": "가격",
-      "content": "핫초코 얼마예요?",
-      "draft": "핫초코는 5,500원입니다.",
-      "error": null,
-      "mismatches": [],
-      "expected_found": true,
-      "seconds": 19.5
-    },
-    {
-      "id": 9,
-      "store": "브루밍 카페",
-      "category": "가격",
-      "content": "크루아상 가격 알려주세요",
-      "draft": "브루밍 카페의 크루상 가격은 4,500원입니다.",
-      "error": null,
-      "mismatches": [],
-      "expected_found": true,
-      "seconds": 1.2
-    },
-    {
-      "id": 10,
-      "store": "브루밍 카페",
-      "category": "가격",
-      "content": "밤라떼는 얼마인가요?",
-      "draft": "브루밍 카페의 밤라떼 가격은 6,000원입니다.",
-      "error": null,
-      "mismatches": [],
-      "expected_found": true,
-      "seconds": 6.6
-    },
-    {
-      "id": 11,
-      "store": "브루밍 카페",
-      "category": "영업시간",
-      "content": "몇 시에 오픈하나요?",
-      "draft": "매장 정보에 따르면 브루밍 카페는 **오전 9시(09:00)** 부터 영업합니다.\n(참고: 매주 월요일은 휴무일입니다.)",
-      "error": null,
-      "mismatches": [],
-      "expected_found": true,
-      "seconds": 6.4
-    },
-    {
-      "id": 12,
-      "store": "브루밍 카페",
-      "category": "영업시간",
-      "content": "몇 시에 문을 닫나요?",
-      "draft": "브루밍 카페는 오후 9시(21:00)에 문을 닫습니다.",
-      "error": null,
-      "mismatches": [],
-      "expected_found": true,
-      "seconds": 6.4
-    },
-    {
-      "id": 13,
-      "store": "브루밍 카페",
-      "category": "영업시간",
-      "content": "주말에도 영업하나요?",
-      "draft": "네, 주말에는 정상 영업합니다.\n\n매장 정보에 따르면 브루밍 카페의 **정기 휴무일은 매주 월요일**입니다. 공휴일도 정상 영업하며, 주말(토·일)에는 휴무일이 아니므로 영업시간인 오전 9시부터 오후 9시까지 방문하실 수 있습니다.\n\n감사합니다.",
-      "error": null,
-      "mismatches": [],
-      "expected_found": true,
-      "seconds": 7.2
-    },
-    {
-      "id": 14,
-      "store": "브루밍 카페",
-      "category": "영업시간",
-      "content": "오늘(월요일) 영업하나요?",
-      "draft": "안녕하세요. 브루밍 카페는 매주 월요일이 정기 휴무일이므로 오늘은 영업을 하지 않습니다.\n\n가장 가까운 화요일 오전 9시부터 영업합니다. 감사합니다.",
-      "error": null,
-      "mismatches": [],
-      "expected_found": true,
-      "seconds": 6.3
-    },
-    {
-      "id": 15,
-      "store": "브루밍 카페",
-      "category": "영업시간",
-      "content": "오후 9시에도 운영 중인가요?",
-      "draft": "네, 브루밍 카페는 오전 9시부터 오후 9시까지 운영하므로 오후 9시에도 영업하고 있습니다.\n\n다만, 매주 월요일은 정기 휴무일이며 공휴일은 정상 영업합니다. 방문하시기 전에 해당 날짜가 월요일이 아닌지 확인해 주시는 것이 좋습니다.",
-      "error": null,
-      "mismatches": [],
-      "expected_found": true,
-      "seconds": 17.5
-    },
-    {
-      "id": 16,
-      "store": "브루밍 카페",
-      "category": "영업시간",
-      "content": "영업 시작 시간이 언제예요?",
-      "draft": "브루밍 카페의 영업 시작 시간은 오전 9시입니다.",
-      "error": null,
-      "mismatches": [],
-      "expected_found": true,
-      "seconds": 1.1
-    },
-    {
-      "id": 17,
-      "store": "브루밍 카페",
-      "category": "영업시간",
-      "content": "정기 휴무일이 언제예요?",
-      "draft": "매장 정보를 확인한 결과, 브루밍 카페의 정기 휴무일은 **매주 월요일**입니다.",
-      "error": null,
-      "mismatches": [],
-      "expected_found": true,
-      "seconds": 6.5
-    },
-    {
-      "id": 18,
-      "store": "브루밍 카페",
-      "category": "영업시간",
-      "content": "저녁 10시에 가도 되나요?",
-      "draft": "죄송합니다. 브루밍 카페의 영업시간은 오전 9시부터 오후 9시(21:00)까지이며, 매주 월요일은 정기 휴무일입니다.\n\n따라서 저녁 10시에는 방문하실 수 없습니다.",
-      "error": null,
-      "mismatches": [],
-      "expected_found": true,
-      "seconds": 6.5
-    },
-    {
-      "id": 19,
-      "store": "브루밍 카페",
-      "category": "영업시간",
-      "content": "아침 8시 반에 오픈하나요?",
-      "draft": "아니요, 브루밍 카페는 오전 9시(09:00)부터 영업합니다. 영업시간은 오전 9시부터 오후 9시까지이며, 매주 월요일은 정기 휴무일입니다.",
-      "error": null,
-      "mismatches": [],
-      "expected_found": true,
-      "seconds": 7.0
-    },
-    {
-      "id": 20,
-      "store": "브루밍 카페",
-      "category": "영업시간",
-      "content": "화요일도 쉬나요? 쉬는 날이 언제예요?",
-      "draft": "월요일에만 정기 휴무입니다. 화요일은 정상 영업하며, 영업시간은 오전 9시부터 오후 9시까지입니다.",
-      "error": null,
-      "mismatches": [],
-      "expected_found": true,
-      "seconds": 18.2
-    },
-    {
-      "id": 21,
-      "store": "브루밍 카페",
-      "category": "근거없음",
-      "content": "와인도 판매하나요?",
-      "draft": "제공된 메뉴 및 매장 정보에는 와인 판매에 대한 내용이 포함되어 있지 않습니다.\n따라서 해당 사항은 **매장에 직접 문의해 주세요.**",
+      "draft": "안녕하세요, 브루밍 카페입니다.\n아메리카노는 4,500원입니다.\n에티오피아 예가체프 싱글오리진 원두를 사용하여 깔끔하고 균형 잡힌 산미를 즐길 수 있습니다.",
       "error": null,
       "mismatches": [],
       "expected_found": true,
       "seconds": 0.9
     },
     {
-      "id": 22,
+      "id": 2,
       "store": "브루밍 카페",
-      "category": "근거없음",
-      "content": "생맥주 있나요?",
-      "draft": "제공된 메뉴 및 FAQ 정보에는 생맥주 또는 다른 주류 판매에 대한 내용이 없습니다. 따라서 '매장에 직접 문의해 주세요'로 안내드립니다.",
+      "category": "가격",
+      "content": "카페라떼 가격이 어떻게 되나요?",
+      "draft": "안녕하세요, 브루밍 카페입니다.\n카페라떼는 5,500원입니다.\n국내산 신선 우유로 만든 부드러운 라떼로, 취향이 잘 맞으실 것 같습니다.",
       "error": null,
       "mismatches": [],
       "expected_found": true,
-      "seconds": 17.5
+      "seconds": 17.0
     },
     {
-      "id": 23,
+      "id": 3,
       "store": "브루밍 카페",
-      "category": "근거없음",
-      "content": "파스타 메뉴가 있나요?",
-      "draft": "제시된 메뉴 목록에 파스타는 포함되어 있지 않으며, 현재 매장의 메뉴 정보에는 먹거리(음식) 메뉴가 아메리카노, 라떼류, 스무디, 에이드, 핫초코와 크루아상, 치즈케이크, 브라우니 등 디저트류로만 기재되어 있습니다.\n\n따라서 파스타 메뉴의 유무는 근거 자료에 없는 사항이므로, 정확한 확인을 위해 매장에 직접 문의해 주세요.",
-      "error": null,
-      "mismatches": [],
-      "expected_found": true,
-      "seconds": 1.3
-    },
-    {
-      "id": 24,
-      "store": "브루밍 카페",
-      "category": "근거없음",
-      "content": "피자도 팔아요?",
-      "draft": "매장에서 피자를 판매하지 않습니다. 현재 판매 중인 메뉴는 아메리카노, 카페라떼, 밤라떼, 말차라떼, 딸기스무디, 자몽에이드, 핫초코, 크루아상, 치즈케이크, 브라우니입니다.",
-      "error": null,
-      "mismatches": [],
-      "expected_found": false,
-      "seconds": 1.0
-    },
-    {
-      "id": 25,
-      "store": "브루밍 카페",
-      "category": "근거없음",
-      "content": "샐러드 메뉴가 있나요?",
-      "draft": "제공된 메뉴 및 FAQ 정보에는 샐러드 관련 내용이 포함되어 있지 않습니다.\n因此, 매장에 직접 문의해 주세요.",
+      "category": "가격",
+      "content": "말차라떼는 얼마인가요?",
+      "draft": "안녕하세요, 브루밍 카페입니다. 말차라떼는 6,000원입니다. 일본산 1등급 말차 파우더로 만든 진한 녹차라떼로 준비되어 있습니다.",
       "error": null,
       "mismatches": [],
       "expected_found": true,
       "seconds": 6.7
     },
     {
-      "id": 26,
+      "id": 4,
       "store": "브루밍 카페",
-      "category": "근거없음",
-      "content": "떡볶이도 판매하나요?",
-      "draft": "제공된 메뉴 목록(아메리카노, 카페라떼, 밤라떼, 말차라떼, 딸기스무디, 자몽에이드, 핫초코, 크루아상, 치즈케이크, 브라우니) 및 FAQ에는 떡볶이에 대한 정보가 포함되어 있지 않습니다.\n\n따라서 **매장에 직접 문의해 주세요.**",
+      "category": "가격",
+      "content": "치즈케이크 얼마예요?",
+      "draft": "안녕하세요, 브루밍 카페입니다.\n치즈케이크는 7,000원에 판매하고 있습니다.\n하루 20개 한정으로 판매되므로 품절 전에 방문하시는 것을 추천드립니다.",
       "error": null,
       "mismatches": [],
       "expected_found": true,
-      "seconds": 17.2
+      "seconds": 17.1
     },
     {
-      "id": 27,
+      "id": 5,
       "store": "브루밍 카페",
-      "category": "근거없음",
-      "content": "라면 메뉴는 없나요?",
-      "draft": "제공된 메뉴 정보와 FAQ에 라면 관련 언급이 없습니다.\n이에 따라 \"매장에 직접 문의해 주세요\"라고 답변합니다.\n\n매장에 직접 문의해 주세요",
-      "error": null,
-      "mismatches": [],
-      "expected_found": true,
-      "seconds": 1.0
-    },
-    {
-      "id": 28,
-      "store": "브루밍 카페",
-      "category": "근거없음",
-      "content": "와플 주문 가능한가요?",
-      "draft": "제공된 메뉴 목록에는 와플이 포함되어 있지 않습니다. 현재 판매 중인 디저트는 크루아상, 치즈케이크, 브라우니이며, 와플供應 여부는 매장에 직접 문의해 주세요.",
+      "category": "가격",
+      "content": "브라우니 가격 알 수 있을까요?",
+      "draft": "안녕하세요, 브루밍 카페입니다. 브라우니는 5,000원입니다. 벨기에 초콜릿을 사용해 촉촉하고 진한 맛을 즐기실 수 있습니다.",
       "error": null,
       "mismatches": [],
       "expected_found": true,
       "seconds": 6.7
     },
     {
-      "id": 29,
+      "id": 6,
       "store": "브루밍 카페",
-      "category": "근거없음",
-      "content": "알코올 메뉴가 있나요?",
-      "draft": "제공된 매장 정보, 메뉴, FAQ에 기재된 내용에 알코올 메뉴에 대한 언급이 없습니다. 따라서 정확한 정보는 **매장에 직접 문의해 주세요**.",
+      "category": "가격",
+      "content": "딸기스무디는 얼마인가요?",
+      "draft": "안녕하세요, 브루밍 카페입니다.\n딸기스무디는 6,500원에 판매하고 있습니다.\n생딸기와 그릭요거트를 사용하여 만든 과일 스무디입니다.",
+      "error": null,
+      "mismatches": [],
+      "expected_found": true,
+      "seconds": 6.9
+    },
+    {
+      "id": 7,
+      "store": "브루밍 카페",
+      "category": "가격",
+      "content": "자몽에이드 가격이 궁금합니다",
+      "draft": "안녕하세요, 브루밍 카페입니다.\n자몽에이드의 가격은 6,000원입니다.\n자몽 착즙과 탄산수를 활용한 상큼한 에이드로 즐길 수 있습니다.",
+      "error": null,
+      "mismatches": [],
+      "expected_found": true,
+      "seconds": 17.3
+    },
+    {
+      "id": 8,
+      "store": "브루밍 카페",
+      "category": "가격",
+      "content": "핫초코 얼마예요?",
+      "draft": "안녕하세요, 브루밍 카페입니다. 핫초코는 5,500원이며 벨기에산 다크초콜릿으로 진하게 만든 메뉴입니다.",
+      "error": null,
+      "mismatches": [],
+      "expected_found": true,
+      "seconds": 6.7
+    },
+    {
+      "id": 9,
+      "store": "브루밍 카페",
+      "category": "가격",
+      "content": "크루아상 가격 알려주세요",
+      "draft": "안녕하세요, 브루밍 카페입니다. 크루아상은 매일 아침 직접 굽는 버터 크루아상으로 4,500원에 판매하고 있습니다.",
+      "error": null,
+      "mismatches": [],
+      "expected_found": true,
+      "seconds": 16.9
+    },
+    {
+      "id": 10,
+      "store": "브루밍 카페",
+      "category": "가격",
+      "content": "밤라떼는 얼마인가요?",
+      "draft": "안녕하세요, 브루밍 카페입니다.\n밤라떼는 6,000원입니다.\n국산 밤 페이스트와 에스프레소의 고소하고 달콤한 조화를 즐기실 수 있습니다.",
       "error": null,
       "mismatches": [],
       "expected_found": true,
       "seconds": 6.3
     },
     {
+      "id": 11,
+      "store": "브루밍 카페",
+      "category": "영업시간",
+      "content": "몇 시에 오픈하나요?",
+      "draft": "안녕하세요, 브루밍 카페입니다. 저희 매장은 오전 9시에 오픈합니다.",
+      "error": null,
+      "mismatches": [],
+      "expected_found": true,
+      "seconds": 16.9
+    },
+    {
+      "id": 12,
+      "store": "브루밍 카페",
+      "category": "영업시간",
+      "content": "몇 시에 문을 닫나요?",
+      "draft": "안녕하세요, 브루밍 카페입니다.\n저희 매장은 매일 오후 9시에 문을 닫습니다.\n방문 전 참고해 주시기 바랍니다.",
+      "error": null,
+      "mismatches": [],
+      "expected_found": true,
+      "seconds": 7.8
+    },
+    {
+      "id": 13,
+      "store": "브루밍 카페",
+      "category": "영업시간",
+      "content": "주말에도 영업하나요?",
+      "draft": "안녕하세요, 브루밍 카페입니다. 주말에도 정상 영업하고 있으며, 매주 월요일만 휴무입니다. 주말 오후에는 웨이팅이 있을 수 있으니 참고해 주세요.",
+      "error": null,
+      "mismatches": [],
+      "expected_found": true,
+      "seconds": 7.0
+    },
+    {
+      "id": 14,
+      "store": "브루밍 카페",
+      "category": "영업시간",
+      "content": "오늘(월요일) 영업하나요?",
+      "draft": "안녕하세요, 브루밍 카페입니다.\n매주 월요일은 정기 휴무일이며, 내일 화요일부터 정상 영업합니다.\n감사합니다.",
+      "error": null,
+      "mismatches": [
+        {
+          "kind": "휴무일",
+          "found": "화요일",
+          "message": "휴무일이 아닙니다 (등록된 휴무일: 월)"
+        }
+      ],
+      "expected_found": true,
+      "seconds": 17.7
+    },
+    {
+      "id": 15,
+      "store": "브루밍 카페",
+      "category": "영업시간",
+      "content": "오후 9시에도 운영 중인가요?",
+      "draft": "안녕하세요, 브루밍 카페입니다.\n매장은 오전 9시부터 오후 9시까지 운영되므로, 오후 9시 정각에 방문하시려면 조금 서두르셔야 합니다.\n해당 시간대에는 마감 준비가 시작될 수 있으니 참고해 주세요.",
+      "error": null,
+      "mismatches": [],
+      "expected_found": true,
+      "seconds": 7.1
+    },
+    {
+      "id": 16,
+      "store": "브루밍 카페",
+      "category": "영업시간",
+      "content": "영업 시작 시간이 언제예요?",
+      "draft": "안녕하세요, 브루밍 카페입니다.\n매장은 오전 9시에 영업이 시작됩니다.\n편하게 방문해 주시기 바랍니다.",
+      "error": null,
+      "mismatches": [],
+      "expected_found": true,
+      "seconds": 16.7
+    },
+    {
+      "id": 17,
+      "store": "브루밍 카페",
+      "category": "영업시간",
+      "content": "정기 휴무일이 언제예요?",
+      "draft": "안녕하세요, 브루밍 카페입니다.\n매주 월요일이 정기 휴무일입니다.\n공휴일은 정상 영업하니 참고해 주세요.",
+      "error": null,
+      "mismatches": [],
+      "expected_found": true,
+      "seconds": 6.2
+    },
+    {
+      "id": 18,
+      "store": "브루밍 카페",
+      "category": "영업시간",
+      "content": "저녁 10시에 가도 되나요?",
+      "draft": "안녕하세요, 브루밍 카페입니다.\n저희 매장은 오후 9시에 영업을 마감하므로 저녁 10시에는 방문이 어렵습니다.\n방문 전 영업시간을 확인해 주시면 감사하겠습니다.",
+      "error": null,
+      "mismatches": [],
+      "expected_found": true,
+      "seconds": 17.8
+    },
+    {
+      "id": 19,
+      "store": "브루밍 카페",
+      "category": "영업시간",
+      "content": "아침 8시 반에 오픈하나요?",
+      "draft": "안녕하세요, 브루밍 카페입니다. 저희 매장은 오전 9시에 오픈하므로 오전 8시 반에는 방문하실 수 없습니다. 오전 9시 이후에 방문해 주시면 감사하겠습니다.",
+      "error": null,
+      "mismatches": [
+        {
+          "kind": "시각",
+          "found": "오전 8시 반",
+          "message": "등록된 영업 시작·종료 시각과 다릅니다"
+        }
+      ],
+      "expected_found": true,
+      "seconds": 6.2
+    },
+    {
+      "id": 20,
+      "store": "브루밍 카페",
+      "category": "영업시간",
+      "content": "화요일도 쉬나요? 쉬는 날이 언제예요?",
+      "draft": "안녕하세요, 브루밍 카페입니다. 매주 월요일에만 정기 휴무를 가지며, 화요일에는 정상 영업합니다.",
+      "error": null,
+      "mismatches": [
+        {
+          "kind": "휴무일",
+          "found": "화요일",
+          "message": "휴무일이 아닙니다 (등록된 휴무일: 월)"
+        }
+      ],
+      "expected_found": true,
+      "seconds": 6.2
+    },
+    {
+      "id": 21,
+      "store": "브루밍 카페",
+      "category": "근거없음",
+      "content": "와인도 판매하나요?",
+      "draft": "안녕하세요, 브루밍 카페입니다. 현재 저희 매장은 와인 판매를 하지 않습니다. 대신 상큼한 자몽에이드를 즐기실 수 있으니 참고해 주세요.",
+      "error": null,
+      "mismatches": [],
+      "expected_found": false,
+      "seconds": 16.8
+    },
+    {
+      "id": 22,
+      "store": "브루밍 카페",
+      "category": "근거없음",
+      "content": "생맥주 있나요?",
+      "draft": "안녕하세요, 브루밍 카페입니다.\n현재 생맥주는 판매하지 않는 메뉴입니다.\n상큼한 음료를 원하신다면 자몽에이드를 추천해 드립니다.",
+      "error": null,
+      "mismatches": [],
+      "expected_found": false,
+      "seconds": 6.2
+    },
+    {
+      "id": 23,
+      "store": "브루밍 카페",
+      "category": "근거없음",
+      "content": "파스타 메뉴가 있나요?",
+      "draft": null,
+      "error": "AI 초안 생성 실패: Groq 호출 한도 초과 (HTTP 429). 잠시 후 다시 시도",
+      "mismatches": [],
+      "expected_found": null,
+      "seconds": 16.4
+    },
+    {
+      "id": 24,
+      "store": "브루밍 카페",
+      "category": "근거없음",
+      "content": "피자도 팔아요?",
+      "draft": "안녕하세요, 브루밍 카페입니다. 저희 매장은 피자류를 판매하지 않습니다. 대신 매일 아침 직접 굽는 버터 크루아상이나 다양한 디저트를 즐기실 수 있습니다.",
+      "error": null,
+      "mismatches": [],
+      "expected_found": false,
+      "seconds": 0.7
+    },
+    {
+      "id": 25,
+      "store": "브루밍 카페",
+      "category": "근거없음",
+      "content": "샐러드 메뉴가 있나요?",
+      "draft": "안녕하세요, 브루밍 카페입니다. 현재 샐러드는 판매하지 않는 메뉴입니다. 대신 과일과 요거트를 활용한 딸기스무디를 추천해 드립니다.",
+      "error": null,
+      "mismatches": [],
+      "expected_found": false,
+      "seconds": 0.7
+    },
+    {
+      "id": 26,
+      "store": "브루밍 카페",
+      "category": "근거없음",
+      "content": "떡볶이도 판매하나요?",
+      "draft": "안녕하세요, 브루밍 카페입니다.\n매장에서 판매하는 메뉴에는 떡볶이가 포함되어 있지 않아 현재 판매하지 않는 메뉴입니다.\n대신 따뜻한 핫초코나 부드러운 크림이 들어간 얼그레이 케이크를 함께 즐기셔도 좋습니다.",
+      "error": null,
+      "mismatches": [],
+      "expected_found": false,
+      "seconds": 16.6
+    },
+    {
+      "id": 27,
+      "store": "브루밍 카페",
+      "category": "근거없음",
+      "content": "라면 메뉴는 없나요?",
+      "draft": "안녕하세요, 브루밍 카페입니다. 라면은 현재 판매하지 않는 메뉴입니다. 따뜻한 음료가 필요하시다면 벨기에산 다크초콜릿으로 만든 진한 핫초코를 추천해 드립니다.",
+      "error": null,
+      "mismatches": [],
+      "expected_found": false,
+      "seconds": 6.1
+    },
+    {
+      "id": 28,
+      "store": "브루밍 카페",
+      "category": "근거없음",
+      "content": "와플 주문 가능한가요?",
+      "draft": "안녕하세요, 브루밍 카페입니다. 현재 와플은 판매하지 않는 메뉴입니다. 비슷한 메뉴로 매일 아침 직접 굽는 버터 크루아상을 추천해 드립니다.",
+      "error": null,
+      "mismatches": [],
+      "expected_found": false,
+      "seconds": 16.6
+    },
+    {
+      "id": 29,
+      "store": "브루밍 카페",
+      "category": "근거없음",
+      "content": "알코올 메뉴가 있나요?",
+      "draft": "안녕하세요, 브루밍 카페입니다. 현재 알코올 메뉴는 판매하지 않고 있습니다. 대신 자몽에이드나 자몽 착즙 에이드를 즐기실 수 있으니 참고해 주세요.",
+      "error": null,
+      "mismatches": [],
+      "expected_found": false,
+      "seconds": 6.1
+    },
+    {
       "id": 30,
       "store": "브루밍 카페",
       "category": "근거없음",
       "content": "주류 판매도 하나요?",
-      "draft": "제공된 매장의 메뉴 및 FAQ 정보에는 주류 판매 여부에 대한 내용이 포함되어 있지 않습니다.\n\n따라서 **매장에 직접 문의해 주세요.**",
+      "draft": "안녕하세요, 브루밍 카페입니다. 현재 매장에서 주류를 판매하고 있지 않으며, 제공 가능한 음료는 아메리카노, 라떼, 스무디, 에이드, 차류 등 비알코올 음료로만 구성되어 있습니다. 주류 판매 여부는 매장에 직접 문의해 주세요.",
       "error": null,
       "mismatches": [],
       "expected_found": true,
-      "seconds": 17.1
+      "seconds": 16.7
     }
   ]
 }

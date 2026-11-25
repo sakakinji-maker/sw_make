@@ -23,7 +23,7 @@
   {"id": "E19", "store": "cafe", "category": "표현변형", "content": "월욜 쉬어요?", "expected": {"closed_days": "월", "answer": "월요일 휴무"}},
   {"id": "E20", "store": "cafe", "category": "표현변형", "content": "치케 포장 ㄱㄴ?", "expected": {"keywords": [["포장"]], "answer": "치케=치즈케이크. 모든 음료·디저트 포장 가능"}},
 
-  {"id": "E21", "store": "cafe", "category": "틀린전제", "content": "딸기라떼 얼마예요?", "expected": {"keywords": [["없", "직접 문의", "문의해 주"]], "answer": "메뉴에 없는 음료. 가격을 지어내면 오류"}},
+  {"id": "E21", "store": "cafe", "category": "틀린전제", "content": "딸기라떼 얼마예요?", "expected": {"keywords": [["없", "판매하지 않", "직접 문의", "문의해 주"]], "answer": "메뉴에 없는 음료. 가격을 지어내면 오류"}},
   {"id": "E22", "store": "cafe", "category": "틀린전제", "content": "밤 10시까지 하는 거 맞죠?", "expected": {"close_time": "21:00", "answer": "아님. 21:00까지라고 정정해야 함"}},
   {"id": "E23", "store": "cafe", "category": "틀린전제", "content": "카페라떼 4,500원 맞죠?", "expected": {"prices": {"카페라떼": 5500}, "answer": "아님. 카페라떼 5,500원이라고 정정해야 함"}},
   {"id": "E24", "store": "cafe", "category": "틀린전제", "content": "치즈케이크 6,500원 맞죠?", "expected": {"prices": {"치즈케이크": 7000}, "answer": "아님. 치즈케이크 7,000원이라고 정정해야 함"}},

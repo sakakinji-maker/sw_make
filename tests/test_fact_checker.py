@@ -132,3 +132,21 @@ def test_time_quoted_from_inquiry_is_ignored():
     draft = "저녁 8시 반에는 주문이 가능하며, 영업은 21:00까지입니다."
     assert menu_checker.check(draft, quoted="토요일 저녁 8시 반에 가도 되나요?") == []
     assert [m.found for m in menu_checker.check(draft)] == ["저녁 8시 반"]
+
+
+def test_open_day_next_to_closed_day_is_not_flagged():
+    """D-30: 11/25 재실험 Q14·Q20 초안. 휴무일과 영업일을 한 문장에 말한 경우."""
+    q14 = "매주 월요일은 정기 휴무일이며, 내일 화요일부터 정상 영업합니다."
+    q20 = "매주 월요일에만 정기 휴무를 가지며, 화요일에는 정상 영업합니다."
+    assert closed_mon.check(q14) == []
+    assert closed_mon.check(q20) == []
+
+
+def test_wrong_day_in_mixed_sentence_still_flagged():
+    wrong = "화요일은 휴무이며, 월요일에는 정상 영업합니다."
+    found = {m.found for m in closed_mon.check(wrong)}
+    assert found == {"화요일", "월요일"}
+
+
+def test_days_listed_before_off_word_still_flagged():
+    assert [m.found for m in closed_mon.check("월요일, 수요일은 휴무입니다.")] == ["수요일"]
