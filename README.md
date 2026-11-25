@@ -1,297 +1,209 @@
 # 소상공인용 AI 마케팅·고객응대 통합 지원 시스템
 
-> 융합SW모델설계 PBL 과제 1 · 2026학년도 2학기 · 팀 **신창섭**
+> 융합SW모델설계 PBL 과제 1 · 2026학년도 2학기 · 팀 **신창섭** (한재형 · 전지호 · 정회성)
 
-소상공인 점주가 **예약·문의·홍보** 업무를 한 화면에서 처리하고, 생성형 AI로 답변과 홍보 문구 작성 부담을 줄이는 웹 시스템입니다. AI는 초안만 만들고 최종 확정은 항상 점주가 합니다.
+소상공인 점주가 **예약·문의·홍보** 업무를 한 화면에서 처리하고, 생성형 AI로 답변과 홍보 문구 작성 부담을 줄이는 웹 시스템입니다. AI는 초안만 만들고, 최종 확정은 항상 점주가 합니다. 시연용 매장은 가상의 카페 **브루밍 카페**입니다.
 
-- 기획서 및 요구사항 정의서: [Claude 문서](https://claude.ai/artifact/V2xe6GyYuFoP2MaS8sb3xY)
-- 수행 기간: 10주차(10/27) ~ 14주차(11/30), **15주차(12/1) 최종 발표**
-- 처음 왔다면: [Git 가이드](docs/git_guide.md) 1번부터 따라 해서 내 PC에서 `pytest`가 통과하는지 먼저 확인하세요.
+- **GitHub 저장소**: https://github.com/sakakinji-maker/sw_make
+- **최종 제출 버전**: `main` 브랜치 (태그 `v1.0-final`)
+- **수행 기간**: 10주차(10/27) ~ 14주차(12/7 제출), 12/8 최종 발표
 
 ## 목차
 
 1. [팀원과 역할](#팀원과-역할)
-2. [과목 필수 산출물과 담당자](#과목-필수-산출물과-담당자)
-3. [팀원별 할 일](#팀원별-할-일) — 한재형 · 전지호 · 정회성 · 전원 공통
-4. [매주 반복하는 일](#매주-반복하는-일)
-5. ["완료"의 기준](#완료의-기준)
-6. [실행 방법](#실행-방법) · [폴더 구조](#폴더-구조) · [디자인 패턴](#디자인-패턴) · [협업 규칙](#협업-규칙)
+2. [주요 기능](#주요-기능)
+3. [기술 스택](#기술-스택)
+4. [실행 방법](#실행-방법)
+5. [환경 설정 (.env)](#환경-설정-env)
+6. [가상 데이터](#가상-데이터)
+7. [테스트](#테스트)
+8. [설계와 디자인 패턴](#설계와-디자인-패턴)
+9. [AI 활용과 검증 장치](#ai-활용과-검증-장치)
+10. [폴더 구조](#폴더-구조)
+11. [산출물 위치](#산출물-위치)
+12. [알려진 한계](#알려진-한계)
+13. [협업 규칙](#협업-규칙)
 
 ## 팀원과 역할
 
 | 이름 | GitHub | 역할 | 담당 기능 | 디자인 패턴 |
 | --- | --- | --- | --- | --- |
-| 한재형 | `jhhan1404` | PM | F-01 매장·메뉴 관리, F-02 마무리·통합(13주차) | State |
+| 한재형 | `jhhan1404` | PM | F-01 매장·메뉴 관리, F-02 마무리·통합, 문자 알림, 화면 개편 | State |
 | 전지호 | `jeonjiho5219` | 설계 | F-04 채널별 AI 홍보 문구, F-05 대시보드 | Strategy |
-| 정회성 | `sakakinji-maker` | 개발·검증 | F-02 예약·고객 관리(12주차), F-03 문의 접수·AI 답변 초안 | Adapter |
+| 정회성 | `sakakinji-maker` | 개발·검증 | F-02 예약·고객 관리, F-03 문의 접수·AI 답변 초안, AI 검증 실험 | Adapter |
 
-필수 기능(MVP)의 세부 요구사항 18개(F-01-1 ~ F-05-2)는 기획서 6절에 있습니다.
+팀원별 세부 기여는 결과보고서의 "팀원별 기여"에 정리했습니다.
 
-> **WBS v2 (12주차 역할 조정 v1.1)**: F-02(예약·고객 관리)는 12주차에 정회성이 구현하고, 한재형은 F-01에 집중한 뒤 13주차에 F-02 마무리·통합을 맡습니다. F-03 구현은 13주차에 진행합니다.
+## 주요 기능
 
-## 과목 필수 산출물과 담당자
+### 필수 기능 (MVP)
 
-PBL 안내서의 "모든 과제의 공통 요건"을 누가 책임지는지 정리한 표입니다. 최종 제출 전에 이 표가 모두 채워졌는지 확인합니다.
+| ID | 기능 | 화면 |
+| --- | --- | --- |
+| F-01 | 매장 정보·메뉴(사진 포함)·FAQ 관리 | 점주 `/owner/store` |
+| F-02 | 예약 신청·조회·변경·취소, 점주 확정·취소·방문완료·노쇼 처리, 상태 변경 이력 | 고객 `/reservations/new`, `/reservations/lookup` · 점주 `/owner/reservations` |
+| F-03 | 문의 접수, AI 답변 초안, 매장 정보 대조(사실 검증), 점주 수정·발송 | 고객 `/inquiries/new`, `/inquiries/lookup` · 점주 `/owner/inquiries` |
+| F-04 | 채널별(인스타그램·블로그·문자) AI 홍보 문구 생성, 규칙 검사, 이력 저장 | 점주 `/owner/marketing` |
+| F-05 | 대시보드: 오늘 예약 타임라인, 확정 대기·미응답 문의, 앞으로 7일 예약 그래프 | 점주 `/owner` |
 
-| 공통 요건 | 구체적으로 필요한 것 | 담당 | 위치 | 마감 |
-| --- | --- | --- | --- | --- |
-| 요구분석 | 기능 요구사항 ID·우선순위, 비기능 요구사항 2개 이상, 유스케이스 다이어그램 | 한재형 | `docs/planning/` | 10주차 |
-| 아키텍처 | 스타일 선택 근거, 품질 속성 2개 이상의 목표·달성 방법·검증 방법, 4+1 관점 중 3개 이상 | 전지호 | `docs/design/architecture.md` | 11주차 |
-| 클래스 설계 | 관계 유형(상속·연관·집합·구성·의존·실체화)을 구분한 클래스 다이어그램, SOLID 점검 | 전지호 | `docs/design/class_diagram.md` | 11주차 |
-| 디자인 패턴 | 3인 팀 2개 이상, "무엇이 자주 바뀌는가" 관점의 적용 근거 | 각자 1개 (State·Strategy·Adapter) | 설계서 + 코드 | 12주차 |
-| 구현 | 팀 코딩 규칙 문서화, CLAUDE.md 반영 | 정회성 | `CLAUDE.md` | 11주차 |
-| 검증 | 필수 기능별 정상·예외 테스트 케이스 | 각자 담당 기능, 정회성 취합 | `tests/`, `docs/test_cases.md` | 13주차 |
-| 검증 | AI 활용 로그 | 전원 기록, 정회성 점검 | `docs/ai_usage_log.md` | 매주 |
-| 검증 | AI 검증 보고서 | 정회성 | `docs/verification/report.md` | 14주차 |
-| 데이터 | DB 1개 이상, 가상 데이터만 사용 | 전원 | `app/db/seed_data/` | 11주차 |
-| 생성형 AI | AI 기능 1개 이상 + 검증 장치 | 정회성(F-03), 전지호(F-04) | 코드 | 13주차 |
+### 추가로 구현한 것
 
----
+- **문자 알림 11종** (SOLAPI): 예약 신청·변경·확정·취소, 새 문의, 답변 등록·수정. 모두 단문(90바이트) 이내
+- **노쇼 관리**: 예약 상세의 노쇼 경고, 고객 이력의 단골·노쇼 주의 필터, 이름·번호 뒤 4자리 검색
+- **확정 한마디**: 점주가 확정하면서 손님에게 메모를 남기면 손님의 "내 예약" 화면에 표시
+- **점주 취소 사유**: 사유를 고르면 손님 문자에 함께 안내
+- **발송 전 확인**: 점주가 고친 답변을 보내기 전에 매장 정보와 다시 대조
+- **외국어 자동 수정**: AI 결과에 한자·가나가 섞이면 다시 생성하고, 남으면 그 글자만 고치도록 요청
+- **예약 날짜 검색**, 대시보드 그래프 막대를 누르면 그날 예약 보기
 
-## 팀원별 할 일
+## 기술 스택
 
-각 항목은 **무엇을 → 어디에 → 언제 끝난 것인지** 순서로 적었습니다. 끝낸 항목은 `[ ]`를 `[x]`로 바꿔 PR에 함께 올립니다.
-
-### 한재형 (PM)
-
-PM은 일정과 회의를 관리하고, 요구분석 문서를 책임지며, 예약 기능(State 패턴)을 구현합니다.
-
-**10주차 (10/27 ~ 11/2) · 기획·요구분석**
-
-- [ ] **기획서·요구사항 정의서 최종본 확정**
-  - Claude 문서에서 팀원 의견을 반영해 마무리한 뒤, Word와 PDF로 내려받아 `docs/planning/`에 올립니다.
-  - 완료 기준: 기능 요구사항 18개에 ID·우선순위가 있고, 비기능 요구사항 2개 이상, 유스케이스 다이어그램과 명세(UC-01 ~ UC-08)가 포함됨
-- [ ] **PR #1 내용 확인** (정회성의 10주차 가이드 문서, README 팀원별 할 일)
-- [ ] **10/30(금) 팀 회의 진행**: AI API 결정(→ 11/10 Gemini로 확정), 11주차 일정 확인
-  - 회의록: `docs/meetings/week10.md` ([양식](docs/meetings/README.md))
-
-**11주차 (11/3 ~ 11/9) · 설계**
-
-- [ ] **가상 데이터 생성 프롬프트 확정** → `docs/data_prompts.md`
-  - 세 사람이 같은 매장 설정(매장명, 메뉴, 영업시간)을 쓰도록 공통 조건을 먼저 정합니다.
-- [ ] **담당 가상 데이터 생성** → `app/db/seed_data/` (형식은 [seed_data/README](app/db/seed_data/README.md))
-  - `stores.json`: **정회성이 초안 작성함.** 검토 후 필요하면 메뉴 추가 (기존 이름·가격·영업시간을 바꾸면 문의 정답도 같이 수정)
-  - `customers.json`: 고객 30명
-  - `reservations.json`: 예약 50건. 상태(요청·확정·방문완료·취소·노쇼)를 고르게 섞고, 휴무일·영업시간 경계 사례도 몇 건 포함
-- [ ] **회의록** `docs/meetings/week11.md`
-
-**12주차 (11/10 ~ 11/16) · 구현 1**
-
-- [ ] **F-01 매장·메뉴·FAQ 관리** (점주 화면)
-  - 코드: `app/presentation/routers/owner.py`, `templates/owner/`, 필요하면 `app/services/store/`
-  - 완료 기준: F-01-1 ~ F-01-3 동작, 가격 음수·영업시간 역전 같은 예외 처리, 테스트 포함
-- F-02는 WBS v2에 따라 12주차에 정회성이 구현 → 13주차에 마무리·통합 담당
-- [ ] **⚑ 중간 점검 진행 (12주차 금)**: F-01·F-02를 팀 앞에서 시연. 안 되면 일정 조정 결정
-
-**13주차 (11/17 ~ 11/23) · 구현 2·검증**
-
-- [ ] **F-02 마무리·통합** (WBS v2): 예약 State 연동 완성, F-01 매장 정보 수정과 함께 전체 흐름 확인
-- [ ] F-01·F-02 예외 테스트 보강, 리뷰에서 나온 수정 반영
-- [ ] 발표 자료 구성안(목차, 시연 순서) 작성 → `docs/presentation/`
-
-**14주차 (11/24 ~ 11/30) · 통합·보고서**
-
-- [ ] 발표 자료 완성, 시연 시나리오(어떤 순서로 무엇을 클릭할지) 작성
-- [ ] 결과 보고서 취합 (각자 쓴 설계서·검증 보고서를 하나로)
-- [ ] 발표 리허설 1회 이상
-
-### 전지호 (설계)
-
-설계 담당은 아키텍처·클래스·ERD 문서를 책임지고, 홍보 문구(Strategy 패턴)와 대시보드를 구현합니다.
-
-**10주차 (10/27 ~ 11/2) · 기획·요구분석**
-
-- [ ] **기술 스택 확정**: 현재안(FastAPI + SQLite + Jinja2) 유지 여부 결정. React로 바꾸려면 10/30 회의에서 제안
-- [ ] **아키텍처 초안 검토**: 기획서 10절의 계층 구조도와 예약 상태 전이도를 읽고 수정할 점 정리
-
-**11주차 (11/3 ~ 11/9) · 설계** ← 전지호가 가장 바쁜 주
-
-- [ ] **아키텍처 설계서** → `docs/design/architecture.md`
-  - 아키텍처 스타일(3계층 + 클라이언트-서버) 선택 근거와 검토한 대안
-  - 품질 속성 2개 이상(사용성, 변경용이성)의 목표·달성 방법·검증 방법 (기획서 7절 NF-01 ~ NF-04 참고)
-  - 4+1 관점 중 3개 이상: 논리(클래스), 개발(패키지), 물리(배포) + 시나리오(유스케이스)
-- [ ] **클래스 다이어그램 + SOLID 점검표** → `docs/design/class_diagram.md` (이미지는 같은 폴더)
-  - 관계 6종(상속·연관·집합·구성·의존·실체화)을 구분해 표시. 예: `RequestedState`는 `ReservationState`를 **상속**, `MockAIClient`는 `AIClient`를 **실체화**
-  - SOLID 5원칙 각각에 대해 "우리 코드에서 어디가 해당하는지" 한 줄씩
-- [ ] **ERD** → `docs/design/erd.md`
-  - `app/models/models.py`와 반드시 일치해야 합니다. 다르면 둘 중 하나를 고칩니다.
-- [ ] **담당 가상 데이터**: 채널별 홍보 문구 예시 5건씩 → `app/db/seed_data/contents.json`
-
-**12주차 (11/10 ~ 11/16) · 구현 1**
-
-- [ ] **F-04 채널별 AI 홍보 문구 생성**
-  - 코드: `app/services/marketing/` (전략 3종은 `strategies.py`에 골격 있음), 점주 화면 연결
-  - 새 채널은 클래스 하나 + `@register`로만 추가해야 합니다(변경용이성 NF-02의 근거).
-  - 완료 기준: F-04-1 동작, Mock AI로 테스트
-
-**13주차 (11/17 ~ 11/23) · 구현 2·검증**
-
-- [ ] **F-04 마무리**: 규칙 위반 표시(F-04-2), 메뉴·가격 DB 대조(`FactChecker` 재사용), 저장·목록(F-04-3)
-- [ ] **F-05 대시보드**: 오늘 예약(상태별), 미응답 문의 수, 최근 콘텐츠 5건, 클릭 시 처리 화면 이동
-  - 코드: `app/presentation/routers/owner.py`, `templates/owner/dashboard.html`
-- [ ] **NF-02 검증**: 실제로 채널 하나(예: 카카오톡 채널)를 추가해 보고 바뀐 파일 수를 설계서에 기록
-
-**14주차 (11/24 ~ 11/30) · 통합·보고서**
-
-- [ ] **설계서 최신화**: 구현하면서 바뀐 클래스·테이블을 다이어그램에 반영
-- [ ] 발표 자료의 설계 파트(아키텍처, 패턴 3개) 작성
-
-### 정회성 (개발·검증)
-
-개발·검증 담당은 개발 환경과 GitHub, 코딩 규칙, 테스트, AI 검증을 책임지고, 문의 답변(Adapter 패턴)을 구현합니다.
-
-**10주차 (10/27 ~ 11/2) · 기획·요구분석**
-
-- [x] GitHub 레포 생성, 프로젝트 뼈대 업로드
-- [x] 브랜치 규칙·Git 가이드 공유 → [docs/git_guide.md](docs/git_guide.md)
-- [x] AI API 후보 비교·키 발급 가이드 → [docs/ai_api_selection.md](docs/ai_api_selection.md)
-- [x] AI API 결정: **Gemini 무료 등급** (11/10, [결정 기록](docs/ai_api_selection.md#4-결정-기록))
-
-**11주차 (11/3 ~ 11/9) · 설계**
-
-- [ ] **코딩 규칙 확정** → `CLAUDE.md` (현재 초안. 팀원 의견 반영 후 확정)
-- [x] **테스트 케이스 문서 양식** → [`docs/test_cases.md`](docs/test_cases.md) (기존 자동 테스트 23건 매핑, 나머지는 담당자가 채움)
-- [x] **담당 가상 데이터** → `app/db/seed_data/` (+ `stores.json` 초안, 한재형 검토 필요)
-  - `inquiries.json`: 문의 30건. 13주차 검증 실험에 그대로 쓰이므로 유형을 섞습니다: 가격 질문 10, 영업시간·휴무 질문 10, 매장 정보에 **없는** 내용 질문 10
-  - `faqs.json`: 매장당 FAQ 10개
-- [x] **`app/db/seed.py`가 `seed_data/*.json`을 읽어 적재하도록 수정** (`--reset` 지원, 데이터 품질 테스트 8건)
-
-**12주차 (11/10 ~ 11/16) · 구현 1**
-
-- [x] **F-02 예약 신청·조회·변경·취소·상태 처리** (WBS v2로 정회성 담당, F-02-1 ~ F-02-5 + 고객 이력 UC-10)
-  - 고객: `/reservations/new`, `/reservations/lookup` · 점주: `/owner/reservations`, `/owner/customers`
-  - 휴무일·영업시간·지난 시간·시간당 정원 초과 거부, 허용되지 않은 전이 거부, 모든 상태 변경 이력 기록. 테스트 36건
-- [x] **실제 AI Adapter 구현** → `app/adapters/ai/external_adapter.py` (Claude·Gemini·OpenAI 3종, `.env`의 `AI_PROVIDER`로 선택. 실제 키 연결 확인은 API 결정 후)
-- [x] **F-03 문의 등록(고객 화면) + AI 답변 초안 생성(점주 화면)** (F-03-1, F-03-2, F-03-3 대조 결과 저장·경고 표시까지)
-  - 고객: `/inquiries/new` · 점주: `/owner/inquiries`
-- [x] **Gemini API 키 발급** → `.env` 설정 → `python -m app.adapters.ai.check`로 연결 확인 ([순서](docs/ai_api_selection.md#6-gemini-키-발급과-연결-확인))
-  - 11/10 키 발급·`.env` 설정 완료. 11/17 `AI_MODEL=gemini-3.5-flash-lite`로 연결 확인 성공
-  - `gemini-3.8-flash`는 11/16·11/17 모두 응답 시간 초과. 시연 때는 flash-lite를 쓰거나 당일 다시 확인
-
-**13주차 (11/17 ~ 11/23) · 구현 2·검증** ← 정회성이 가장 바쁜 주
-
-- [x] **F-03 마무리**: DB 대조 경고 표시(F-03-3, 휴무일 대조 추가), 점주 수정·발송 완료·복사(F-03-4), AI 실패 시 직접 작성(F-03-5)
-- [x] **테스트 케이스 취합**: 세 사람의 기능별 정상·예외 테스트가 모두 있는지 확인, `docs/test_cases.md` 완성 (11/16: ✅ 76건, 남은 3건은 [취합 결과](docs/test_cases.md#13주차-취합-결과-남은-항목) 참고)
-- [x] **AI 검증 실험** (기획서 12절) → [결과](docs/verification/experiment_week13.md), 실행: `python -m scripts.verify_ai --ai` (사람 평가는 팀원 판정 필요)
-  - 문의 30건 DB 대조 불일치율, 사람 평가(그대로 사용 / 일부 수정 / 사용 불가)
-  - 오류 삽입 초안 10건으로 대조 장치 탐지율
-  - 채널 3개 × 10건 규칙 준수율 (전지호와 함께)
-
-**14주차 (11/24 ~ 11/30) · 통합·보고서**
-
-- [ ] 통합 테스트 (전체 시나리오를 처음부터 끝까지)
-- [ ] **AI 검증 보고서** → `docs/verification/report.md`
-- [ ] AI 활용 로그 최종 정리
-
-### 전원 공통
-
-- [ ] **10주차**: 레포 초대 수락 → [Git 가이드](docs/git_guide.md) 1번대로 clone → `pytest`가 실패 없이 모두 통과하는지 확인 (11/10 기준 **92 passed**)
-  - [ ] 한재형 · [ ] 전지호 · [x] 정회성
-- [x] **10주차**: AI API 결정 → **Gemini 무료 등급** (11/10)
-- [ ] **11주차**: 각자 담당 가상 데이터 완성
-- [ ] **14주차 (선택)**: 확장 기능 1개 — 예약 알림 메시지 / 리뷰 답글 초안 / 월간 홍보 캘린더. 필수 기능이 다 끝났을 때만
-- [ ] **15주차 (12/1)**: 최종 발표 및 시연
-
----
-
-## 매주 반복하는 일
-
-| 요일 | 한재형 (PM) | 전지호 (설계) | 정회성 (개발·검증) |
-| --- | --- | --- | --- |
-| 월 | 이번 주 목표를 단톡방에 공지 | develop Pull 후 작업 시작 | develop Pull, `pytest`로 develop이 깨지지 않았는지 확인 |
-| 화~목 | 본인 기능 작업, 일정 지연 여부 점검 | 본인 기능 작업, 설계서와 구현이 맞는지 확인 | 본인 기능 작업, 리뷰 요청받은 PR 확인 |
-| 금 | 회의 진행, 회의록 작성 | 설계 변경 사항 공유 | 테스트 결과·AI 로그 점검 결과 공유, (키 발급 후) API 사용량 확인 |
-| 금 (전원) | 이번 주 AI 사용 내역을 `docs/ai_usage_log.md`에 기록, README 체크박스 업데이트 | | |
-
-## "완료"의 기준
-
-할 일 하나를 `[x]`로 체크하려면 아래를 모두 만족해야 합니다.
-
-1. **코드**: `pytest`와 `ruff check .` 통과, 정상·예외 테스트가 함께 있음
-2. **PR**: `develop`으로 PR을 올려 Merge됨 (승인 없이 본인이 Merge해도 됨)
-3. **문서**: 정해진 위치(위 표의 경로)에 올라가 있음
-4. **AI 사용 시**: `docs/ai_usage_log.md`에 기록됨
-
-승인은 필수가 아닙니다. 세 사람 모두 PR을 직접 Merge할 수 있습니다. 다만 아래 경우에는 Merge 전에 단톡방에 알리고 해당 담당자에게 확인을 받습니다.
-
-- **다른 사람 담당 파일을 고친 PR** (예: 정회성이 `reservation/` 코드를 수정)
-- **공통 파일을 고친 PR**: `app/models/models.py`, `app/db/`, `CLAUDE.md`, `requirements.txt`, README의 일정
-
-리뷰를 받고 싶을 때는 내용에 맞는 사람을 Reviewers로 지정합니다.
-
-| PR 내용 | 리뷰 요청할 사람 |
-| --- | --- |
-| 일정·README·팀 규칙 | 한재형 |
-| 설계 문서, 코드 구조·패턴 | 전지호 |
-| 기능 코드 (한재형·전지호 작성) | 정회성 |
-| 기능 코드 (정회성 작성) | 전지호 또는 한재형 |
-
----
+- **백엔드**: Python 3.11 이상, FastAPI, SQLAlchemy 2, SQLite
+- **화면**: Jinja2 템플릿, Bootstrap 5, Pretendard 글꼴
+- **생성형 AI**: Groq(`qwen/qwen3.8-27b`) 사용, Gemini·Claude·OpenAI도 설정만 바꾸면 사용 가능 (Adapter 패턴)
+- **문자**: SOLAPI(쿨SMS) REST API
+- **품질**: pytest, ruff, GitHub Actions(CI)
 
 ## 실행 방법
 
-VS Code 기준 자세한 설치 순서는 [Git 가이드](docs/git_guide.md)에 있습니다.
+자세한 설치 순서(VS Code 기준)는 [Git 가이드](docs/git_guide.md)에 있습니다.
 
 ```bash
 python -m venv .venv
 .venv\Scripts\activate             # Mac: source .venv/bin/activate
 pip install -r requirements.txt
 copy .env.example .env             # Mac: cp .env.example .env
-python -m app.db.seed              # 샘플 데이터
+python -m app.db.seed --reset      # 가상 데이터 적재 (처음 상태로 되돌릴 때도 사용)
 uvicorn app.main:app --reload      # 서버 실행
 ```
 
-- 고객 화면: http://127.0.0.1:8000/ (예약하기: `/reservations/new`, 내 예약: `/reservations/lookup`, 문의하기: `/inquiries/new`)
-- 점주 화면: http://127.0.0.1:8000/owner (예약 관리: `/owner/reservations`, 고객 이력: `/owner/customers`, 문의함: `/owner/inquiries`)
-- API 문서: http://127.0.0.1:8000/docs
+- **고객 화면**: http://127.0.0.1:8000/
+- **점주 화면**: http://127.0.0.1:8000/owner
+- **API 문서**: http://127.0.0.1:8000/docs
+
+서버를 처음 켤 때 DB가 비어 있으면 가상 데이터가 자동으로 들어갑니다. 이미 데이터가 있으면 그대로 두므로, 처음 상태로 돌리려면 `python -m app.db.seed --reset`을 실행합니다.
+
+다른 PC(예: 발표장)에서 접속해야 하면 서버를 켠 상태에서 터널을 엽니다.
 
 ```bash
-pytest           # 테스트
+cloudflared tunnel --url http://localhost:8000
+```
+
+## 환경 설정 (.env)
+
+`.env.example`을 복사해 `.env`를 만듭니다. **`.env`는 Git에 올리지 않으며, API 키는 단톡방·코드·문서에 절대 붙여 넣지 않습니다.**
+
+| 항목 | 값 | 설명 |
+| --- | --- | --- |
+| `AI_PROVIDER` | `mock`(기본) \| `groq` \| `gemini` \| `claude` \| `openai` | `mock`이면 실제 AI를 호출하지 않음 |
+| `AI_API_KEY`, `AI_MODEL` | 제공사 콘솔에서 발급 | 실제 AI를 쓸 때만 |
+| `SMS_PROVIDER` | `mock`(기본) \| `solapi` | `mock`이면 실제로 보내지 않고 터미널에 `[SMS mock]`만 출력 |
+| `SMS_API_KEY`, `SMS_API_SECRET` | SOLAPI 콘솔에서 발급 | 권한은 "메시지 발송 → 문자"만 |
+| `SMS_SENDER` | SOLAPI에 등록·인증한 발신번호 | |
+| `SMS_OWNER_PHONE` | 점주 알림을 받을 번호 | 새 예약·새 문의 알림 |
+
+**실제 문자 발송 시 주의**: SOLAPI는 API 키에 등록한 **허용 IP**에서 온 요청만 보냅니다. 와이파이를 바꾸면 "내 IP 확인"으로 현재 IP를 확인해 SOLAPI 콘솔에 추가해야 합니다. 설정이 틀려도 예약·문의는 막히지 않고 mock으로 대신합니다.
+
+## 가상 데이터
+
+실제 개인정보는 쓰지 않고, 모두 가상 데이터입니다. 위치: [`app/db/seed_data/`](app/db/seed_data/README.md)
+
+| 파일 | 내용 |
+| --- | --- |
+| `stores.json` | 브루밍 카페 1곳, 메뉴 12개(음료 8·디저트 4) |
+| `faqs.json` | FAQ 20개 |
+| `inquiries.json` | 문의 30건 (가격·영업시간·근거 없음 질문 각 10건, AI 검증 실험용 정답 포함) |
+| `reservations.json` | 예약 75건. 발표일(12/8) 기준으로 지난 예약·오늘 예약·앞으로 7일 예약을 구성, 단골·노쇼 손님 포함 |
+
+메뉴 사진 12장과 배경 이미지는 **Google Gemini로 생성한 이미지**입니다. 출처는 [`app/presentation/static/menu/README.md`](app/presentation/static/menu/README.md)에 기록했습니다.
+
+## 테스트
+
+```bash
+pytest           # 전체 테스트 (313개)
 ruff check .     # 린트
 ruff format .    # 포맷
 ```
 
-`.env`의 `AI_PROVIDER=mock`이면 실제 AI를 호출하지 않습니다. 실제 API는 팀 결정대로 `AI_PROVIDER=gemini`와 `AI_API_KEY`, `AI_MODEL`을 함께 설정합니다(`claude`, `openai`도 지원). 실제 API 키는 정회성만 관리하며, 단톡방이나 코드에 절대 올리지 않습니다.
+- 모든 Pull Request에서 GitHub Actions가 `ruff check`, `ruff format --check`, `pytest`를 자동으로 실행합니다.
+- 테스트는 실제 AI·문자 API를 호출하지 않습니다(Mock 사용).
+- 기능별 정상·예외 테스트 케이스와 결과는 [테스트 케이스 문서](docs/test_cases.md)와 테스트 결과표에 정리했습니다.
+
+## 설계와 디자인 패턴
+
+3계층 구조(프레젠테이션 → 서비스 → 저장소)이며, 서비스는 SQL과 외부 API를 직접 다루지 않습니다.
+
+| 패턴 | 위치 | 무엇이 자주 바뀌는가 | 담당 |
+| --- | --- | --- | --- |
+| State | `app/services/reservation/states.py` | 예약 정책(상태별 가능한 처리, 새 상태 추가) | 한재형 |
+| Strategy | `app/services/marketing/strategies.py` | 홍보 채널 추가, 채널별 길이·해시태그 규칙 | 전지호 |
+| Adapter | `app/adapters/ai/`, `app/adapters/sms/` | AI 제공사·모델 변경, 문자 서비스 변경, 테스트용 Mock 전환 | 정회성 (문자: 한재형) |
+
+- 새 홍보 채널은 `strategies.py`에 클래스 하나와 `@register`만 추가하면 됩니다.
+- 서비스는 `Notifier`(문자 알림)를 주입받아, 테스트에서는 알림을 끄거나 가짜 발송기로 바꿉니다.
+- 설계 문서: [시스템 설계](docs/design/system_design.md) · [클래스 다이어그램](docs/design/class_diagram.md) · [ERD](docs/design/erd.md)
+
+## AI 활용과 검증 장치
+
+| 기능 | AI가 하는 일 | 검증 장치 |
+| --- | --- | --- |
+| F-03 문의 답변 | 매장 정보·메뉴·FAQ만 근거로 답변 초안 작성 | `FactChecker`가 초안과 점주 수정본의 가격·시각·휴무일을 DB와 대조, 프롬프트 인젝션 방어, 마크다운 기호 제거 |
+| F-04 홍보 문구 | 채널·대상·키워드에 맞는 문구 작성 | 채널별 길이·해시태그 규칙 검사, 메뉴 가격·영업시간 대조, 외국어 문자 검사 |
+
+- AI 결과는 화면에 "AI 생성" 표시를 하고, 손님에게는 점주가 확정한 답변만 보입니다.
+- 13주차 검증 실험 결과: [experiment_week13.md](docs/verification/experiment_week13.md) (실행: `python -m scripts.verify_ai --ai`)
+- AI 활용 로그: [ai_usage_log.md](docs/ai_usage_log.md)
 
 ## 폴더 구조
 
 ```
 app/
   presentation/            # 프레젠테이션 계층
-    routers/               #   owner.py (점주), customer.py (고객)
-    templates/owner/       #   점주 화면
-    templates/customer/    #   고객 화면
+    routers/               #   customer, reservation, inquiry, owner, marketing
+    templates/             #   customer/(고객 화면), owner/(점주 화면)
+    static/                #   메뉴 사진, 배경 이미지
   services/                # 비즈니스 로직 계층
-    reservation/           #   예약 서비스 + 상태 클래스 (State)        ← 한재형
-    inquiry/               #   문의 서비스 + FactChecker (DB 대조)      ← 정회성
-    marketing/             #   홍보 서비스 + 채널 전략 (Strategy)       ← 전지호
-  adapters/ai/             # AIClient 인터페이스, Mock, 실제 API (Adapter) ← 정회성
+    reservation/           #   예약 서비스 + 상태 클래스 (State)
+    inquiry/               #   문의 서비스 + FactChecker (DB 대조)
+    marketing/             #   홍보 서비스 + 채널 전략 (Strategy)
+    notification/          #   문자 알림 11종
+    dashboard/, store/     #   대시보드, 매장·메뉴·메뉴 사진
+  adapters/
+    ai/                    #   AIClient 인터페이스, Mock, 실제 API (Adapter)
+    sms/                   #   SmsSender 인터페이스, Mock, SOLAPI (Adapter)
   repositories/            # DB 조회·저장
-  models/                  # Store, MenuItem, FAQ, Customer, Reservation ...
-  db/                      # DB 연결, 가상 데이터 적재
-    seed_data/             #   가상 데이터 JSON (전원)
+  models/                  # Store, MenuItem, FAQ, Customer, Reservation, ReservationHistory, Inquiry, MarketingContent
+  db/                      # DB 연결, 가상 데이터 적재 (seed_data/)
 tests/                     # 기능별 정상·예외 테스트
-docs/
-  planning/                # 기획서·요구사항 정의서            ← 한재형
-  design/                  # 아키텍처, 클래스 다이어그램, ERD  ← 전지호
-  meetings/                # 주간 회의록                       ← 한재형
-  verification/            # AI 검증 실험·보고서               ← 정회성
-  presentation/            # 발표 자료                         ← 한재형
-CLAUDE.md                  # 팀 코딩 규칙                      ← 정회성
+scripts/verify_ai.py       # AI 검증 실험
+docs/                      # 기획·설계·검증 문서
+CLAUDE.md                  # 팀 코딩 규칙
 ```
 
-## 디자인 패턴
+## 산출물 위치
 
-| 패턴 | 위치 | 무엇이 자주 바뀌는가 | 담당 |
-| --- | --- | --- | --- |
-| State | `app/services/reservation/states.py` | 예약 정책(취소 가능 시점, 새 상태 추가) | 한재형 |
-| Strategy | `app/services/marketing/strategies.py` | 홍보 채널 추가, 채널별 규칙 변경 | 전지호 |
-| Adapter | `app/adapters/ai/` | AI 제공사·모델 변경, 테스트용 Mock 전환 | 정회성 |
+| 산출물 | 위치 |
+| --- | --- |
+| 소스코드 | 이 저장소 `main` 브랜치 |
+| 데이터베이스 스키마·샘플 데이터 | `app/models/models.py`, [ERD](docs/design/erd.md), `app/db/seed_data/` |
+| 요구사항 정의서·설계서 | `docs/planning/`, `docs/design/` |
+| 테스트 케이스·결과 | [docs/test_cases.md](docs/test_cases.md), 테스트 결과표 |
+| AI 활용 내역·검증 | [docs/ai_usage_log.md](docs/ai_usage_log.md), `docs/verification/` |
+| 코딩 규칙 | [CLAUDE.md](CLAUDE.md) |
+
+결과보고서, 최종 요구사항 정의서·설계서, 테스트 결과표, AI 활용 내역 및 검증 보고서의 제출본(docx·pdf)은 과목 제출함에 따로 냈습니다.
+
+## 알려진 한계
+
+- **사실 검증 범위**: `FactChecker`는 가격·시각·휴무일 같은 숫자 정보만 대조합니다. "메뉴에 없는 와플을 판다"처럼 숫자가 없는 오류는 잡지 못하므로 점주 확인에 의존합니다.
+- **AI 응답 품질**: 무료 모델은 가끔 외국어가 섞이거나 호출 한도(429)에 걸립니다. 자동 재생성과 수정 요청으로 줄였지만 완전히 막지는 못합니다.
+- **메뉴 사진 저장 방식**: 사진은 DB가 아니라 `static/menu`에 메뉴 이름으로 저장합니다. 메뉴 이름을 바꾸면 사진을 다시 올려야 합니다.
+- **문자 발송 IP 제한**: SOLAPI 허용 IP 때문에 클라우드 배포(Railway 등)에서는 실제 문자를 보내기 어렵습니다. 시연은 노트북 서버와 cloudflared 터널로 합니다.
+- **단일 매장·로그인 없음**: 매장 1곳 기준이며, 점주 화면 로그인은 범위에서 제외했습니다.
 
 ## 협업 규칙
 
-- 브랜치: `main`(제출용) ← `develop`(통합) ← `feature/F-02-reservation`처럼 기능 ID로 만듭니다.
-- `main`, `develop`에 직접 push하지 않고 Pull Request로 병합합니다. 승인은 필요 없고 본인이 Merge해도 됩니다.
-- 다른 사람 담당 파일이나 공통 파일(models, db, CLAUDE.md, requirements.txt)을 고쳤다면 Merge 전에 단톡방에 알립니다.
-- 커밋 메시지는 `feat:`, `fix:`, `test:`, `docs:`, `refactor:`로 시작합니다.
+- 브랜치: `main`(제출용) ← `develop`(통합) ← 기능 브랜치(`feature/...`)
+- `main`, `develop`에 직접 push하지 않고 Pull Request로 병합합니다.
+- 커밋 메시지는 `feat:`, `fix:`, `test:`, `docs:`, `refactor:`, `style:`로 시작합니다.
 - 코드 작성 규칙은 [CLAUDE.md](CLAUDE.md), Git 사용법은 [docs/git_guide.md](docs/git_guide.md)를 따릅니다.
