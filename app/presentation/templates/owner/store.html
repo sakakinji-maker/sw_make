@@ -91,19 +91,28 @@
     <div class="card mb-3">
       <div class="card-header">메뉴 추가</div>
       <div class="card-body">
-        <form method="post" action="/owner/menus" class="row g-2">
-          <div class="col-md-4">
+        {% if photo_error %}<div class="alert alert-danger py-2" data-photo-error>{{ photo_error }}</div>{% endif %}
+        <form method="post" action="/owner/menus" class="row g-2" enctype="multipart/form-data">
+          <div class="col-md-3">
             <input name="name" class="form-control" placeholder="메뉴명" required>
           </div>
           <div class="col-md-2">
             <input name="price" type="number" class="form-control" placeholder="가격(원)" min="0" required>
           </div>
-          <div class="col-md-4">
+          <div class="col-md-3">
             <input name="description" class="form-control" placeholder="설명 (선택)">
+          </div>
+          <div class="col-md-2">
+            <label class="btn btn-outline-secondary w-100 text-truncate" title="사진 (선택)">
+              <span data-photo-label>📷 사진 (선택)</span>
+              <input name="photo" type="file" class="d-none" accept=".jpg,.jpeg,.png,.webp" data-photo-input
+                     onchange="this.previousElementSibling.textContent = this.files[0] ? '📷 ' + this.files[0].name : '📷 사진 (선택)'">
+            </label>
           </div>
           <div class="col-md-2">
             <button type="submit" class="btn btn-primary w-100">추가</button>
           </div>
+          <div class="col-12 form-text mt-0">사진은 선택이에요. jpg·png·webp, 5MB 이하. 가로로 긴 사진이 손님 화면 카드에 잘 맞아요.</div>
         </form>
       </div>
     </div>
@@ -114,10 +123,28 @@
         <p class="text-muted p-3 mb-0">등록된 메뉴가 없습니다.</p>
         {% else %}
         <table class="table table-hover align-middle mb-0">
-          <thead class="table-light"><tr><th>메뉴명</th><th>가격</th><th>설명</th><th>판매</th><th></th></tr></thead>
+          <thead class="table-light"><tr><th>사진</th><th>메뉴명</th><th>가격</th><th>설명</th><th>판매</th><th></th></tr></thead>
           <tbody>
           {% for m in menus %}
-          <tr>
+          {% set photo = menu_photo(m.name) %}
+          <tr data-menu-row>
+            <td style="width: 150px;">
+              {% if photo %}
+              <img src="{{ photo }}" alt="{{ m.name }}" class="rounded d-block mb-1" style="width: 120px; height: 52px; object-fit: cover;" data-menu-thumb>
+              {% else %}
+              <div class="rounded d-flex align-items-center justify-content-center text-muted small mb-1" style="width: 120px; height: 52px; background: var(--brand-soft);">사진 없음</div>
+              {% endif %}
+              <form method="post" action="/owner/menus/{{ m.id }}/photo" enctype="multipart/form-data" class="d-inline">
+                <label class="btn btn-link btn-sm p-0">{{ '바꾸기' if photo else '사진 올리기' }}
+                  <input type="file" name="photo" accept=".jpg,.jpeg,.png,.webp" class="d-none" onchange="this.form.submit()">
+                </label>
+              </form>
+              {% if photo %}
+              <form method="post" action="/owner/menus/{{ m.id }}/photo/delete" class="d-inline" onsubmit="return confirm('사진을 지울까요?')">
+                <button class="btn btn-link btn-sm p-0 text-danger ms-1">지우기</button>
+              </form>
+              {% endif %}
+            </td>
             <td>{{ m.name }}</td>
             <td>{{ "{:,}".format(m.price) }}원</td>
             <td class="text-muted small">{{ m.description }}</td>

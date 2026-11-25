@@ -26,10 +26,12 @@ from app.services.inquiry.schemas import (
     korean_errors,
 )
 from app.services.inquiry.service import (
+    ANSWERED,
     InquiryNotFoundError,
     InquiryService,
     StoreNotFoundError,
 )
+from app.services.inquiry.text import plain_text
 from app.services.notification import Notifier, get_notifier
 
 router = APIRouter(tags=["inquiry"])
@@ -120,13 +122,21 @@ def inquiry_lookup_form(request: Request) -> HTMLResponse:
 
 @router.post("/inquiries/lookup", response_class=HTMLResponse)
 def inquiry_lookup(
-    request: Request, service: ServiceDep, phone: Annotated[str, Form()] = ""
+    request: Request,
+    service: ServiceDep,
+    phone: Annotated[str, Form()] = "",
+    name: Annotated[str, Form()] = "",
 ) -> HTMLResponse:
+    """이름과 번호가 모두 맞는 문의만 보여 준다."""
     try:
-        lookup = InquiryLookup(phone=phone)
+        lookup = InquiryLookup(phone=phone, name=name.strip())
     except ValidationError as e:
-        return _render_lookup(request, phone, [], errors=korean_errors(e), status_code=400)
-    return _render_lookup(request, lookup.phone, service.find_for_customer(lookup))
+        return _render_lookup(
+            request, phone, [], errors=korean_errors(e), status_code=400, name=name
+        )
+    return _render_lookup(
+        request, lookup.phone, service.find_for_customer(lookup), name=lookup.name
+    )
 
 
 def _render_lookup(
@@ -135,8 +145,9 @@ def _render_lookup(
     inquiries: list,
     errors: list[str] | None = None,
     status_code: int = 200,
+    name: str | None = "",
 ) -> HTMLResponse:
-    context = {"phone": phone, "inquiries": inquiries, "errors": errors or []}
+    context = {"phone": phone, "name": name, "inquiries": inquiries, "errors": errors or []}
     return templates.TemplateResponse(
         request, "customer/inquiry_lookup.html", context, status_code=status_code
     )
@@ -145,17 +156,44 @@ def _render_lookup(
 # ---------- 점주 화면 (F-03-2 ~ F-03-5) ----------
 
 
+INQUIRY_TABS = {"unanswered": "미응답", "answered": "답변 완료", "all": "전체"}
+
+
 @router.get("/owner/inquiries", response_class=HTMLResponse)
-def inquiry_list(
-    request: Request,
-    service: ServiceDep,
-    store_id: int | None = None,
-) -> HTMLResponse:
+def inquiry_list(request: Request, service: ServiceDep, tab: str = "unanswered") -> HTMLResponse:
+    """기본은 미응답 문의만. 모든 탭에서 최신 문의가 위에 온다."""
     stores = service.repo.list_stores()
-    selected = next((s for s in stores if s.id == store_id), stores[0] if stores else None)
-    inquiries = service.repo.list_by_store(selected.id) if selected else []
-    context = {"stores": stores, "selected": selected, "inquiries": inquiries}
+    store = stores[0] if stores else None  # 단일 매장 시스템
+    tab = tab if tab in INQUIRY_TABS else "unanswered"
+    everything = sorted(
+        service.repo.list_by_store(store.id) if store else [],
+        key=lambda q: (q.received_at, q.id),
+        reverse=True,
+    )
+    groups = {
+        "unanswered": [q for q in everything if q.status != ANSWERED],
+        "answered": [q for q in everything if q.status == ANSWERED],
+        "all": everything,
+    }
+    context = {
+        "store": store,
+        "tab": tab,
+        "tabs": INQUIRY_TABS,
+        "counts": {k: len(v) for k, v in groups.items()},
+        "inquiries": groups[tab],
+    }
     return templates.TemplateResponse(request, "owner/inquiry_list.html", context)
+
+
+# 발송 뒤 보여 줄 안내 (제목, 설명)
+SENT_MESSAGES = {
+    "first": ("답변을 발송했습니다.", "손님에게 답변이 등록됐다는 문자를 보냈어요."),
+    "resent": ("수정한 답변을 다시 발송했습니다.", "손님에게 답변이 수정됐다는 문자를 보냈어요."),
+    "same": (
+        "바뀐 내용이 없어 다시 보내지 않았어요.",
+        "답변을 고친 뒤 '수정 후 재발송'을 누르세요.",
+    ),
+}
 
 
 @router.get("/owner/inquiries/{inquiry_id}", response_class=HTMLResponse)
@@ -167,7 +205,8 @@ def inquiry_detail(
     sent: str | None = None,
 ) -> HTMLResponse:
     inquiry = _get_or_404(service, inquiry_id)
-    return _render_detail(request, service, inquiry, ai_error=bool(ai_error), sent=bool(sent))
+    sent = sent if sent in SENT_MESSAGES else ("first" if sent else None)
+    return _render_detail(request, service, inquiry, ai_error=bool(ai_error), sent=sent)
 
 
 @router.post("/owner/inquiries/{inquiry_id}/answer", response_class=HTMLResponse)
@@ -177,15 +216,20 @@ def submit_answer(
     service: ServiceDep,
     answer: Annotated[str, Form()] = "",
 ) -> Response:
-    """점주가 수정·작성한 답변을 '발송 완료'로 확정한다. (F-03-4, F-03-5)"""
+    """점주가 쓴 답변을 발송한다. 이미 보낸 답변이면 고쳐서 다시 보낸다. (F-03-4, F-03-5)"""
     inquiry = _get_or_404(service, inquiry_id)
+    was_answered, before = inquiry.status == ANSWERED, inquiry.final_answer
     try:
         service.finalize(inquiry_id, AnswerSubmit(answer=answer))
     except ValidationError as e:
         return _render_detail(
             request, service, inquiry, errors=korean_errors(e), answer=answer, status_code=400
         )
-    return RedirectResponse(f"/owner/inquiries/{inquiry_id}?sent=1", status_code=303)
+    if not was_answered:
+        sent = "first"
+    else:
+        sent = "resent" if inquiry.final_answer != before else "same"
+    return RedirectResponse(f"/owner/inquiries/{inquiry_id}?sent={sent}", status_code=303)
 
 
 def _get_or_404(service: InquiryService, inquiry_id: int) -> Inquiry:
@@ -201,9 +245,10 @@ def _render_detail(
     inquiry: Inquiry,
     *,
     ai_error: bool = False,
-    sent: bool = False,
+    sent: str | None = None,
     errors: list[str] | None = None,
     answer: str | None = None,
+    checked: list | None = None,
     status_code: int = 200,
 ) -> HTMLResponse:
     """입력칸에는 '방금 입력한 값 → 확정된 답변 → AI 초안 → 빈칸' 순으로 채운다."""
@@ -213,13 +258,32 @@ def _render_detail(
         "mismatches": service.mismatches_of(inquiry),
         "final_mismatches": service.check_answer(inquiry, final) if final else [],
         "ai_error": ai_error,
-        "sent": sent,
+        "sent": SENT_MESSAGES.get(sent) if sent else None,
         "errors": errors or [],
-        "answer": answer if answer is not None else (final or inquiry.ai_draft or ""),
+        "answer": answer if answer is not None else (final or plain_text(inquiry.ai_draft or "")),
         "max_answer_length": MAX_ANSWER_LENGTH,
+        "checked": checked,  # '발송 전 확인'으로 고친 답변을 대조한 결과 (None이면 확인 안 함)
     }
     return templates.TemplateResponse(
         request, "owner/inquiry_detail.html", context, status_code=status_code
+    )
+
+
+@router.post("/owner/inquiries/{inquiry_id}/check", response_class=HTMLResponse)
+def check_answer(
+    request: Request,
+    inquiry_id: int,
+    service: ServiceDep,
+    answer: Annotated[str, Form()] = "",
+) -> HTMLResponse:
+    """보내지 않고, 점주가 고친 답변을 매장 정보와 대조만 한다. (F-03-3, 발송 전 확인)"""
+    inquiry = _get_or_404(service, inquiry_id)
+    text = plain_text(answer)
+    if not text.strip():
+        errors = ["답변을 입력해 주세요."]
+        return _render_detail(request, service, inquiry, errors=errors, answer=answer)
+    return _render_detail(
+        request, service, inquiry, answer=answer, checked=service.check_answer(inquiry, text)
     )
 
 

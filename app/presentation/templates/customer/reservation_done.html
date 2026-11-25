@@ -1,15 +1,30 @@
 {% extends "base.html" %}
 {% block title %}예약 신청 완료{% endblock %}
 {% block content %}
-<div class="card card-body">
-  <h1 class="h4">예약을 신청했습니다</h1>
-  <p class="mb-1">예약 번호: <strong>{{ reservation.id }}</strong></p>
-  <p class="mb-1">{{ reservation.store.name }} · {{ reservation.reserved_at.strftime('%Y-%m-%d %H:%M') }} · {{ reservation.party_size }}명</p>
-  <p class="mb-3">상태: <span class="badge {{ badges[reservation.status] }}">{{ reservation.status }}</span>
-    <small class="text-muted">매장에서 확정하면 '확정'으로 바뀝니다.</small></p>
-  <div class="d-flex gap-2">
-    <a href="/reservations/lookup" class="btn btn-outline-primary">내 예약 조회</a>
+{% set r = reservation %}
+<div class="mx-auto" style="max-width: 640px;">
+<div class="card card-body text-center py-4" data-reservation-done>
+  <div class="fs-1 mb-2">📅</div>
+  <h1 class="h4">예약 신청이 접수되었어요</h1>
+  <p class="fs-5 fw-semibold my-3">
+    {{ r.reserved_at.strftime('%m/%d') }}({{ '월화수목금토일'[r.reserved_at.weekday()] }})
+    {{ r.reserved_at.strftime('%H:%M') }} · {{ r.party_size }}명
+    <span class="badge {{ badges[r.status] }} align-middle ms-1">{{ r.status }}</span>
+  </p>
+  {% if r.request %}<p class="text-muted small mb-2">요청 사항: {{ r.request }}</p>{% endif %}
+  <p class="text-muted mb-4">
+    매장에서 확인하고 확정하면 {{ r.customer.phone }}(으)로 문자로 알려 드려요.<br>
+    '내 예약'에서 언제든 확인·변경·취소할 수 있어요.
+  </p>
+  <div class="d-flex gap-2 justify-content-center">
+    {# 방금 입력한 번호로 바로 조회한다 #}
+    <form method="post" action="/reservations/lookup">
+      <input type="hidden" name="phone" value="{{ r.customer.phone }}">
+      <input type="hidden" name="name" value="{{ r.customer.name }}">
+      <button class="btn btn-primary">내 예약 확인</button>
+    </form>
     <a href="/" class="btn btn-outline-secondary">처음으로</a>
   </div>
+</div>
 </div>
 {% endblock %}

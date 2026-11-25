@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% block title %}예약하기{% endblock %}
 {% block content %}
-<h1 class="h4 mb-4">예약하기</h1>
+<div class="mx-auto" style="max-width: 640px;">
+<h1 class="h4 mb-3">예약하기</h1>
 
 {% if errors %}
 <div class="alert alert-danger" role="alert">
@@ -9,55 +10,33 @@
 </div>
 {% endif %}
 
-{% if not stores %}
+{% if not store %}
 <div class="alert alert-secondary">등록된 매장이 없습니다. 관리자에게 문의해 주세요.</div>
 {% else %}
 <form method="post" action="/reservations" class="card card-body">
-  <div class="mb-3">
-    <label for="store_id" class="form-label">매장</label>
-    <select id="store_id" name="store_id" class="form-select">
-      {% for s in stores %}
-      <option value="{{ s.id }}" {% if form.store_id == s.id %}selected{% endif %}>{{ s.name }}</option>
-      {% endfor %}
-    </select>
-    <ul class="form-text list-unstyled mb-0">
-      {% for s in stores %}
-      {%- set oh = s.open_time.hour -%}
-      {%- set ch = s.close_time.hour -%}
-      <li>{{ s.name }}: {{ '오전' if oh < 12 else '오후' }} {{ '%02d:%02d' | format(oh if oh <= 12 else oh-12, s.open_time.minute) }}~{{ '오전' if ch < 12 else '오후' }} {{ '%02d:%02d' | format(ch if ch <= 12 else ch-12, s.close_time.minute) }},
-        휴무 {{ s.closed_days or '없음' }}, 시간당 {{ s.capacity_per_hour }}명</li>
-      {% endfor %}
-    </ul>
-  </div>
+  {# 매장이 하나뿐이라 고르지 않고 바로 넘긴다 #}
+  <input type="hidden" name="store_id" value="{{ store.id }}">
   <div class="row g-3 mb-3">
     <div class="col-md-6">
       <label for="name" class="form-label">이름</label>
-      <input id="name" name="name" class="form-control" maxlength="50" value="{{ form.name or '' }}" required>
+      <input id="name" name="name" class="form-control" maxlength="50" placeholder="홍길동"
+             value="{{ form.name or '' }}" required>
     </div>
     <div class="col-md-6">
       <label for="phone" class="form-label">연락처</label>
-      <input id="phone" name="phone" class="form-control" placeholder="010-1234-5678" value="{{ form.phone or '' }}" required>
+      <input id="phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel" data-phone class="form-control" placeholder="010-1234-5678"
+             value="{{ form.phone or '' }}" required>
+      <div class="form-text" data-sms-notice>입력한 연락처로 예약 확인 문자를 보내 드려요.</div>
     </div>
   </div>
-  <div class="row g-3 mb-3">
-    <div class="col-md-4">
-      <label for="visit_date" class="form-label">방문 날짜</label>
-      <input id="visit_date" name="visit_date" type="date" class="form-control" value="{{ form.visit_date or '' }}" required>
-    </div>
-    <div class="col-md-4">
-      <label for="visit_time" class="form-label">방문 시간</label>
-      <input id="visit_time" name="visit_time" type="time" step="60" class="form-control" value="{{ form.visit_time or '' }}" required>
-    </div>
-    <div class="col-md-4">
-      <label for="party_size" class="form-label">인원</label>
-      <input id="party_size" name="party_size" type="number" min="1" max="{{ max_party }}" class="form-control" value="{{ form.party_size or 2 }}" required>
-    </div>
-  </div>
+  {% include "customer/_slot_fields.html" %}
   <div class="mb-3">
     <label for="request" class="form-label">요청 사항 <small class="text-muted">(선택)</small></label>
-    <input id="request" name="request" class="form-control" maxlength="300" value="{{ form.request or '' }}">
+    <input id="request" name="request" class="form-control" maxlength="300"
+           placeholder="예: 창가 자리, 유아 의자 필요" value="{{ form.request or '' }}">
   </div>
-  <button class="btn btn-primary">예약 신청</button>
+  <button class="btn btn-primary py-2">예약 신청</button>
 </form>
 {% endif %}
+</div>
 {% endblock %}

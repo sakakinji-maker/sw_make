@@ -73,7 +73,9 @@ class Reservation(Base):
 
     store: Mapped[Store] = relationship(back_populates="reservations")
     customer: Mapped[Customer] = relationship()
-    histories: Mapped[list["ReservationHistory"]] = relationship(back_populates="reservation")
+    histories: Mapped[list["ReservationHistory"]] = relationship(
+        back_populates="reservation", order_by="ReservationHistory.id"
+    )
 
 
 class ReservationHistory(Base):
@@ -84,6 +86,7 @@ class ReservationHistory(Base):
     from_status: Mapped[str] = mapped_column(String(10))
     to_status: Mapped[str] = mapped_column(String(10))
     changed_at: Mapped[datetime] = mapped_column(default=datetime.now)
+    memo: Mapped[str | None] = mapped_column(String(100), default=None)  # 점주 취소 사유·노쇼 메모
 
     reservation: Mapped[Reservation] = relationship(back_populates="histories")
 

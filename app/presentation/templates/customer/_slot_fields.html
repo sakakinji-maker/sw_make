@@ -1,0 +1,47 @@
+{# 예약 신청·변경 화면이 같이 쓰는 날짜·시간·인원 칸.
+   필요한 값: store, today(YYYY-MM-DD), slots(["09:00", ...]), closed_js(JS 요일 번호), form, max_party #}
+<p class="form-text mt-0 mb-3" data-store-hours>
+  🕐 영업 {{ store.open_time.strftime('%H:%M') }}–{{ store.close_time.strftime('%H:%M') }}
+  {% if store.closed_days %} · 🗓️ {{ store.closed_days.replace(',', '·') }}요일 휴무{% endif %}
+</p>
+<div class="row g-3 mb-3">
+  <div class="col-md-5">
+    <label for="visit_date" class="form-label">방문 날짜</label>
+    <input id="visit_date" name="visit_date" type="date" class="form-control"
+           min="{{ today }}" value="{{ form.visit_date or '' }}" required>
+    <div id="closedWarn" class="form-text text-danger d-none">선택한 날은 휴무일이에요. 다른 날짜를 골라 주세요.</div>
+  </div>
+  <div class="col-md-4">
+    <label for="visit_time" class="form-label">방문 시간</label>
+    {% set current = (form.visit_time or '')[:5] %}
+    <select id="visit_time" name="visit_time" class="form-select" required>
+      <option value="" disabled {% if not current %}selected{% endif %}>시간 선택</option>
+      {% if current and current not in slots %}
+      <option value="{{ current }}" selected>{{ current }} (현재 예약)</option>
+      {% endif %}
+      {% for t in slots %}
+      <option value="{{ t }}" {% if t == current %}selected{% endif %}>{{ t }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-3">
+    <label for="party_size" class="form-label">인원</label>
+    <input id="party_size" name="party_size" type="number" min="1" max="{{ max_party }}" class="form-control"
+           value="{{ form.party_size or 2 }}" required>
+  </div>
+</div>
+<script>
+  // 휴무일을 고르면 제출 전에 바로 알려 준다 (최종 판단은 서버가 한다)
+  (() => {
+    const closed = {{ closed_js | tojson }};
+    const input = document.getElementById("visit_date");
+    const warn = document.getElementById("closedWarn");
+    const check = () => {
+      if (!input.value) return warn.classList.add("d-none");
+      const [y, m, d] = input.value.split("-").map(Number);
+      warn.classList.toggle("d-none", !closed.includes(new Date(y, m - 1, d).getDay()));
+    };
+    input.addEventListener("change", check);
+    check();
+  })();
+</script>
