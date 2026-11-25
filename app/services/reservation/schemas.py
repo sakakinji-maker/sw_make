@@ -6,9 +6,10 @@
 
 from datetime import date, datetime, time
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from app.services.inquiry.schemas import PHONE_PATTERN
+from app.services.phone import normalize_phone
 
 MAX_PARTY_SIZE = 20
 MAX_REQUEST_LENGTH = 300
@@ -43,6 +44,8 @@ class ReservationCreate(ReservationSlot):
     name: str = Field(min_length=1, max_length=50)
     phone: str = Field(pattern=PHONE_PATTERN)
     request: str = Field(default="", max_length=MAX_REQUEST_LENGTH)
+
+    _normalize_phone = field_validator("phone")(lambda v: normalize_phone(v))
 
 
 def korean_errors(error: ValidationError) -> list[str]:

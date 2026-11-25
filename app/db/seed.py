@@ -10,7 +10,7 @@
 
 import json
 import sys
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -24,10 +24,38 @@ from app.models.models import (
     MarketingContent,
     MenuItem,
     Reservation,
+    ReservationHistory,
     Store,
 )
 
 DATA_DIR = Path(__file__).parent / "seed_data"
+
+# 가상 예약의 상태 변경 이력 (11/24). 이력이 없으면 상세 화면에 '이력이 없습니다'만 보여 어색하다.
+# 최종 상태까지 거쳐 온 단계. 손님 취소는 '요청'에서, 노쇼·방문완료는 '확정'에서 바뀐다.
+STATUS_PATH = {
+    "요청": ["요청"],
+    "확정": ["요청", "확정"],
+    "방문완료": ["요청", "확정", "방문완료"],
+    "노쇼": ["요청", "확정", "노쇼"],
+    "취소": ["요청", "취소"],
+}
+# 예약을 신청한 시각이 이 시각보다 뒤가 되지 않게 한다 (발표 전 미래에 신청한 것처럼 보이지 않게)
+SEED_NOW = datetime(2026, 11, 23, 20, 0)
+
+
+def history_rows(reserved_at: datetime, status: str, index: int) -> list[tuple[str, str, datetime]]:
+    """(이전 상태, 바뀐 상태, 시각) 목록. 신청 → 확정 → 방문 순으로 시각이 흐르게 만든다."""
+    requested = min(reserved_at - timedelta(days=3), SEED_NOW) - timedelta(minutes=17 * (index % 7))
+    times = {
+        "요청": requested,
+        "확정": requested + timedelta(hours=2, minutes=index % 40),
+        "취소": requested + timedelta(days=1),
+        "방문완료": reserved_at + timedelta(hours=1, minutes=30),
+        "노쇼": reserved_at + timedelta(minutes=30),
+    }
+    path = STATUS_PATH.get(status, ["요청"])
+    froms = ["신규", *path[:-1]]
+    return [(f, t, times[t]) for f, t in zip(froms, path, strict=True)]
 
 
 class SeedDataError(Exception):
@@ -103,17 +131,22 @@ class SeedLoader:
             )
 
     def load_reservations(self, rows: list[dict[str, Any]]) -> None:
-        for row in rows:
-            self.session.add(
-                Reservation(
-                    store=self.store(row["store"]),
-                    customer=self.customer(row["customer"]),
-                    reserved_at=datetime.fromisoformat(row["reserved_at"]),
-                    party_size=row["party_size"],
-                    request=row.get("request", ""),
-                    status=row.get("status", "요청"),
-                )
+        for index, row in enumerate(rows):
+            reserved_at = datetime.fromisoformat(row["reserved_at"])
+            status = row.get("status", "요청")
+            reservation = Reservation(
+                store=self.store(row["store"]),
+                customer=self.customer(row["customer"]),
+                reserved_at=reserved_at,
+                party_size=row["party_size"],
+                request=row.get("request", ""),
+                status=status,
             )
+            for from_status, to_status, at in history_rows(reserved_at, status, index):
+                reservation.histories.append(
+                    ReservationHistory(from_status=from_status, to_status=to_status, changed_at=at)
+                )
+            self.session.add(reservation)
 
     def load_contents(self, rows: list[dict[str, Any]]) -> None:
         for row in rows:

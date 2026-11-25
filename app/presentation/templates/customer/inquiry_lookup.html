@@ -2,7 +2,8 @@
 {% block title %}내 문의{% endblock %}
 {% block content %}
 {# F-03-6: 고객이 연락처로 자기 문의와 점주가 확정한 답변을 확인한다. AI 초안은 보여주지 않는다. #}
-<h1 class="h4 mb-4">내 문의 · 답변 확인</h1>
+<div class="mx-auto" style="max-width: 640px;">
+<h1 class="h4 mb-3">내 문의 · 답변 확인</h1>
 
 {% if errors %}
 <div class="alert alert-danger" role="alert">
@@ -11,39 +12,56 @@
 {% endif %}
 
 <form method="post" action="/inquiries/lookup" class="card card-body mb-4">
-  <label for="phone" class="form-label">문의할 때 입력한 연락처</label>
-  <div class="d-flex gap-2">
-    <input id="phone" name="phone" class="form-control" placeholder="010-1234-5678" value="{{ phone or '' }}" required>
-    <button class="btn btn-primary text-nowrap">조회</button>
+  <div class="row g-2 mb-2">
+    <div class="col-sm-5">
+      <label for="name" class="form-label">이름</label>
+      <input id="name" name="name" class="form-control" placeholder="홍길동" value="{{ name or '' }}" required>
+    </div>
+    <div class="col-sm-7">
+      <label for="phone" class="form-label">연락처</label>
+      <input id="phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel" data-phone
+             class="form-control" placeholder="010-1234-5678" value="{{ phone or '' }}" required>
+    </div>
   </div>
+  <div class="form-text mb-3">문의할 때 적은 이름과 번호를 넣어 주세요. 번호는 숫자만 입력해도 돼요.</div>
+  <button class="btn btn-primary">문의 조회</button>
 </form>
 
 {% if phone is not none and not errors %}
   {% if not inquiries %}
-  <div class="alert alert-secondary">이 연락처로 남긴 문의가 없습니다.</div>
+  <div class="card card-body text-center text-muted py-4" data-empty>
+    <p class="mb-3">이 이름과 연락처로 남긴 문의가 없어요.</p>
+    <div><a href="/inquiries/new" class="btn btn-primary rounded-pill px-4">💬 문의하러 가기</a></div>
+  </div>
   {% else %}
+  {# 최신 문의가 위에 온다 #}
   {% for q in inquiries %}
-  <div class="card mb-3">
-    <div class="card-header d-flex justify-content-between align-items-center">
-      <span><strong>{{ q.store_name }}</strong> <span class="text-muted small">· 접수 번호 {{ q.id }} · {{ q.received_at.strftime('%Y-%m-%d %H:%M') }}</span></span>
+  <div class="card mb-3" data-inquiry>
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+      <span class="small text-muted">
+        {{ q.received_at.strftime('%m/%d') }}({{ '월화수목금토일'[q.received_at.weekday()] }})
+        {{ q.received_at.strftime('%H:%M') }} 문의
+      </span>
       {% if q.answer %}
-      <span class="badge bg-success">답변 완료</span>
+      <span class="badge text-bg-success">답변 완료</span>
       {% else %}
-      <span class="badge bg-secondary">답변 대기</span>
+      <span class="badge text-bg-secondary">답변 대기</span>
       {% endif %}
     </div>
     <div class="card-body">
-      <p class="small text-muted mb-1">문의 내용</p>
-      <p style="white-space: pre-line">{{ q.content }}</p>
+      <p class="mb-3" style="white-space: pre-line">{{ q.content }}</p>
       {% if q.answer %}
-      <p class="small text-muted mb-1">매장 답변</p>
-      <div class="border-start border-3 border-success ps-3" style="white-space: pre-line">{{ q.answer }}</div>
+      <div class="bg-light rounded p-3">
+        <div class="small fw-semibold text-success mb-1">☕ 매장 답변</div>
+        <div style="white-space: pre-line">{{ q.answer }}</div>
+      </div>
       {% else %}
-      <p class="text-muted mb-0">매장에서 확인 중입니다. 답변이 등록되면 이 화면에서 확인할 수 있습니다.</p>
+      <p class="text-muted small mb-0">매장에서 확인 중이에요. 답변이 등록되면 문자로 알려 드려요.</p>
       {% endif %}
     </div>
   </div>
   {% endfor %}
   {% endif %}
 {% endif %}
+</div>
 {% endblock %}

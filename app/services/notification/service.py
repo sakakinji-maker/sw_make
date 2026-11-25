@@ -82,17 +82,18 @@ class Notifier:
             f"{_when(r)} {r.party_size}명으로 변경 접수. 확정되면 다시 알려 드립니다.",
         )
 
-    def reservation_confirmed(self, r: Reservation) -> None:
-        self._to_customer(
-            r.customer.phone, r.store.name, f"{_when(r)} {r.party_size}명 예약이 확정되었습니다."
-        )
+    def reservation_confirmed(self, r: Reservation, has_note: bool = False) -> None:
+        text = f"{_when(r)} {r.party_size}명 예약이 확정되었습니다."
+        if has_note:  # 한마디 전문은 단문에 안 들어가서 화면으로 안내한다
+            text += " 사장님 메모는 내 예약에서 확인"
+        self._to_customer(r.customer.phone, r.store.name, text)
 
-    def reservation_cancelled_by_owner(self, r: Reservation) -> None:
-        self._to_customer(
-            r.customer.phone,
-            r.store.name,
-            f"{_when(r)} 예약이 매장 사정으로 취소되었습니다. 문의: {r.store.phone}",
-        )
+    def reservation_cancelled_by_owner(self, r: Reservation, reason: str | None = None) -> None:
+        if reason:  # 사유가 있으면 사유를 알려 준다 (단문에 맞추려고 전화번호는 뺀다)
+            text = f"{_when(r)} 예약이 취소되었습니다. 사유: {reason}"
+        else:
+            text = f"{_when(r)} 예약이 매장 사정으로 취소되었습니다. 문의: {r.store.phone}"
+        self._to_customer(r.customer.phone, r.store.name, text)
 
     def reservation_cancelled_by_customer(self, r: Reservation) -> None:
         self._to_customer(r.customer.phone, r.store.name, f"{_when(r)} 예약 취소가 완료되었습니다.")
@@ -110,6 +111,14 @@ class Notifier:
             i.customer.phone,
             i.store.name,
             "문의 답변이 등록되었습니다. 홈페이지 '내 문의'에서 확인해 주세요.",
+        )
+
+    def inquiry_answer_updated(self, i: Inquiry) -> None:
+        """점주가 보낸 답변을 고쳐서 다시 보냈을 때."""
+        self._to_customer(
+            i.customer.phone,
+            i.store.name,
+            "문의 답변이 수정되었습니다. 홈페이지 '내 문의'에서 확인해 주세요.",
         )
 
 

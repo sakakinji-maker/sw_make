@@ -104,3 +104,19 @@ def test_reservations_follow_store_rules():
             booked[(r["store"], at.replace(minute=0))] += r["party_size"]
     for (key, _), size in booked.items():
         assert size <= stores[key]["capacity_per_hour"]
+
+
+def test_seeded_reservations_have_history(session):
+    """가상 예약도 상태에 맞는 이력이 있다 (상세 화면 '이력이 없습니다' 방지, 11/24)."""
+    from app.models.models import Reservation
+
+    load_all(session)
+    session.commit()
+    for r in session.query(Reservation):
+        steps = [(h.from_status, h.to_status) for h in r.histories]
+        assert steps[0][0] == "신규" and steps[-1][1] == r.status, r.id
+        times = [h.changed_at for h in r.histories]
+        assert times == sorted(times), r.id  # 신청 → 확정 → 방문 순서
+        assert times[0] < r.reserved_at  # 예약 일시보다 먼저 신청
+    visited = session.query(Reservation).filter_by(status="방문완료").first()
+    assert [h.to_status for h in visited.histories] == ["요청", "확정", "방문완료"]

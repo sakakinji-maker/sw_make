@@ -65,7 +65,8 @@ def test_dashboard_shows_counts_and_links(client, factory):
         unanswered = s.query(Inquiry).filter_by(store_id=1, status="미응답").count()
     res = client.get("/owner")
     assert res.status_code == 200
-    assert f"{unanswered}건" in res.text  # F-05-1 미응답 문의 수
+    card = res.text.split('data-card="unanswered"')[1].split("</a>")[0]
+    assert f'kpi-value">{unanswered}<' in card  # F-05-1 미응답 문의 수
     for link in ("/owner/reservations", "/owner/inquiries", "/owner/marketing"):  # F-05-2
         assert f'href="{link}"' in res.text
 
@@ -151,3 +152,51 @@ def test_inquiry_draft_is_marked_ai_generated(client):
     client.post("/owner/inquiries/1/draft")
     page = client.get("/owner/inquiries/1").text
     assert "AI가 만든 초안입니다" in page
+
+
+def test_markdown_removed_from_prefill_and_final_answer(client, factory):
+    with factory() as s:
+        q = s.get(Inquiry, 2)
+        q.ai_draft = "**카페라떼**는 5,500원입니다."
+        s.commit()
+    page = client.get("/owner/inquiries/2").text
+    assert ">카페라떼는 5,500원입니다.</textarea>" in page  # 답변 칸에는 기호 없이
+    client.post("/owner/inquiries/2/answer", data={"answer": "**카페라떼**는 5,500원이에요."})
+    with factory() as s:
+        q = s.get(Inquiry, 2)
+        assert q.final_answer == "카페라떼는 5,500원이에요."  # 손님이 보는 답변
+        assert q.ai_draft == "**카페라떼**는 5,500원입니다."  # AI 원본은 검증용으로 그대로
+
+
+def test_marketing_custom_target(client, factory, monkeypatch):
+    """홍보 대상 직접 입력칸: 적으면 고른 대상 대신 쓴다 (11/24)."""
+    monkeypatch.setattr(owner, "get_ai_client", MockAIClient)
+    res = client.post(
+        "/owner/marketing/generate",
+        data={"channel": "sms", "target": "대학생", "target_custom": "근처 헬스장 회원"},
+    )
+    assert res.status_code == 200 and "data-ai-label" in res.text
+    assert 'value="근처 헬스장 회원"' in res.text  # 입력한 대상이 칸에 남는다
+    assert 'value="직접 입력"' not in res.text  # '직접 입력' 라디오는 없앴다
+    with factory() as s:
+        assert s.query(MarketingContent).one().target == "근처 헬스장 회원"
+    empty = client.post("/owner/marketing/generate", data={"channel": "sms", "target": ""})
+    assert "홍보 대상을 골라 주세요." in empty.text
+
+
+def test_marketing_custom_keywords_join_checked_ones(client, factory, monkeypatch):
+    """키워드 직접 입력칸 (11/24): 고른 키워드와 합쳐서 AI에 넘기고 이력에도 남긴다."""
+    monkeypatch.setattr(owner, "get_ai_client", MockAIClient)
+    res = client.post(
+        "/owner/marketing/generate",
+        data={
+            "channel": "sms",
+            "target": "대학생",
+            "keywords_raw": "신메뉴 출시",
+            "keywords_custom": "홍시에이드, 신메뉴 출시 ,오픈 1주년",
+        },
+    )
+    assert 'value="홍시에이드, 신메뉴 출시 ,오픈 1주년"' in res.text  # 입력값이 칸에 남는다
+    with factory() as s:
+        saved = s.query(MarketingContent).one()
+    assert saved.keywords == "신메뉴 출시, 홍시에이드, 오픈 1주년"  # 중복 없이 합쳐짐

@@ -1,7 +1,9 @@
 # AI-assisted (Claude) — 정회성 검토 완료
 """문의 등록 입력 검증 (F-03-1). CLAUDE.md 5-1: 외부 입력은 Pydantic으로 검증한다."""
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
+
+from app.services.phone import normalize_phone, phone_digits
 
 MAX_CONTENT_LENGTH = 1000
 MAX_ANSWER_LENGTH = 2000
@@ -24,6 +26,8 @@ class InquiryCreate(BaseModel):
     phone: str = Field(pattern=PHONE_PATTERN)
     content: str = Field(min_length=1, max_length=MAX_CONTENT_LENGTH)
 
+    _normalize_phone = field_validator("phone")(lambda v: normalize_phone(v))
+
 
 class AnswerSubmit(BaseModel):
     """점주가 확정하는 최종 답변 (F-03-4, F-03-5)."""
@@ -40,10 +44,14 @@ class InquiryLookup(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     phone: str = Field(pattern=PHONE_PATTERN)
+    # 고객 화면은 이름도 받아 번호만으로 남의 문의가 보이지 않게 한다. (서비스 호출은 생략 가능)
+    name: str | None = Field(default=None, min_length=1, max_length=50)
+
+    _normalize_phone = field_validator("phone")(lambda v: normalize_phone(v))
 
     @property
     def digits(self) -> str:
-        return self.phone.replace("-", "")
+        return phone_digits(self.phone)
 
 
 def korean_errors(error: ValidationError) -> list[str]:

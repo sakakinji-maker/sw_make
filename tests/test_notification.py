@@ -167,12 +167,14 @@ def test_inquiry_notifies_owner_with_preview(inquiries, session, sms):
     assert text == f"[브루밍 카페] 새 문의(홍길동): {'가' * 20}…"
 
 
-def test_answer_notifies_customer_once(inquiries, session, sms):
+def test_answer_resend_only_when_changed(inquiries, session, sms):
     i = register(inquiries, session)
     inquiries.finalize(i.id, AnswerSubmit(answer="4,500원입니다."))
-    inquiries.finalize(i.id, AnswerSubmit(answer="아메리카노는 4,500원입니다."))  # 오타 수정
+    inquiries.finalize(i.id, AnswerSubmit(answer="4,500원입니다."))  # 그대로 다시 누름 → 안 보냄
     assert len(to(sms, CUSTOMER)) == 1
-    assert "답변이 등록되었습니다" in to(sms, CUSTOMER)[0]
+    inquiries.finalize(i.id, AnswerSubmit(answer="아메리카노는 4,500원입니다."))  # 고쳐서 재발송
+    first, updated = to(sms, CUSTOMER)
+    assert "답변이 등록되었습니다" in first and "답변이 수정되었습니다" in updated
 
 
 # ---------- 실패해도 업무는 계속 ----------
@@ -260,6 +262,7 @@ def test_every_message_fits_short_sms(reservations, inquiries, session, sms):
     reservations.cancel_by_customer(r2.id, CUSTOMER)
     i = register(inquiries, session, content="가" * 100)
     inquiries.finalize(i.id, AnswerSubmit(answer="답변"))
-    assert len(sms.sent) == 12  # 신청2+변경2+확정1+취소1+신청2+고객취소2+문의1+답변1
+    inquiries.finalize(i.id, AnswerSubmit(answer="고친 답변"))
+    assert len(sms.sent) == 13  # 신청2+변경2+확정1+취소1+신청2+고객취소2+문의1+답변1+수정1
     for _, text in sms.sent:
         assert len(text.encode("cp949")) <= 90, text

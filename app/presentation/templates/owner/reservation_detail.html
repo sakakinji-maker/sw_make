@@ -1,46 +1,127 @@
 {% extends "base_owner.html" %}
 {% block title %}예약 #{{ reservation.id }}{% endblock %}
 {% block content %}
-<a href="/owner/reservations?store_id={{ reservation.store_id }}" class="btn btn-link px-0 mb-2">← 예약 목록</a>
-<h1 class="h4 mb-3">예약 #{{ reservation.id }}
-  <span class="badge {{ badges[reservation.status] }} align-middle">{{ reservation.status }}</span></h1>
+{% set r = reservation %}
+{% set wd = '월화수목금토일' %}
+{# 처리 버튼 모양: 확정·방문완료는 꽉 찬 색, 노쇼·취소는 테두리만 #}
+{% set action_style = {
+  'confirm': ('btn-primary', '✅'), 'visit': ('btn-success', '🙌'),
+  'no_show': ('btn-outline-danger', '🚫'), 'cancel': ('btn-outline-secondary', '✖'),
+} %}
+<a href="/owner/reservations" class="btn btn-link px-0 mb-2">← 예약 목록</a>
 
-{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
-
-<div class="card card-body mb-3">
-  <dl class="row mb-0">
-    <dt class="col-sm-3">매장</dt><dd class="col-sm-9">{{ reservation.store.name }}</dd>
-    <dt class="col-sm-3">일시</dt><dd class="col-sm-9">{{ reservation.reserved_at.strftime('%Y-%m-%d %H:%M') }}</dd>
-    <dt class="col-sm-3">고객</dt>
-    <dd class="col-sm-9"><a href="/owner/customers?phone={{ reservation.customer.phone }}">{{ reservation.customer.name }}</a> ({{ reservation.customer.phone }})</dd>
-    <dt class="col-sm-3">인원</dt><dd class="col-sm-9">{{ reservation.party_size }}명</dd>
-    <dt class="col-sm-3">요청 사항</dt><dd class="col-sm-9">{{ reservation.request or '-' }}</dd>
-  </dl>
+<div class="d-flex align-items-center flex-wrap gap-2 mb-3">
+  <h1 class="h4 fw-bold mb-0">{{ r.customer.name }}님 예약</h1>
+  <span class="badge {{ badges[r.status] }} fs-6">{{ r.status }}</span>
+  <span class="text-muted small ms-1">#{{ r.id }}</span>
 </div>
 
-<div class="mb-4">
-  {% if owner_actions %}
-  <div class="d-flex gap-2">
-    {% for a in owner_actions %}
-    <form method="post" action="/owner/reservations/{{ reservation.id }}/{{ a }}">
-      <button class="btn {{ 'btn-outline-danger' if a in ('cancel', 'no_show') else 'btn-primary' }}">{{ labels[a] }}</button>
-    </form>
-    {% endfor %}
+{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+{% if customer_history and customer_history.no_show_count and r.status == '요청' %}
+<div class="alert alert-warning d-flex gap-2 align-items-start" data-no-show-warning>
+  <span>⚠️</span>
+  <div><strong>노쇼 {{ customer_history.no_show_count }}회 손님이에요.</strong>
+    <div class="small">확정하기 전에 {{ r.customer.phone }}로 전화해서 방문 여부를 확인해 보세요.</div></div>
+</div>
+{% endif %}
+
+<div class="row g-3 mb-4">
+  <div class="col-lg-7">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <div class="fs-4 fw-bold mb-1" data-when>
+          {{ r.reserved_at.strftime('%m월 %d일') }} ({{ wd[r.reserved_at.weekday()] }}) {{ r.reserved_at.strftime('%H:%M') }}
+        </div>
+        <div class="text-muted mb-3">{{ r.party_size }}명</div>
+        <dl class="row mb-0 small">
+          <dt class="col-4 text-muted fw-normal">고객</dt>
+          <dd class="col-8"><a href="/owner/customers?phone={{ r.customer.phone }}">{{ r.customer.name }}</a> · {{ r.customer.phone }}
+            {% set ch = customer_history %}
+            {% if ch %}
+            <div class="mt-1" data-customer-stats>
+              <span class="badge text-bg-light border">방문 {{ ch.visit_count }}회</span>
+              {% if ch.no_show_count %}<span class="badge text-bg-danger" data-no-show-count>노쇼 {{ ch.no_show_count }}회</span>{% endif %}
+            </div>
+            {% endif %}</dd>
+          <dt class="col-4 text-muted fw-normal">요청 사항</dt><dd class="col-8">{{ r.request or '-' }}</dd>
+          <dt class="col-4 text-muted fw-normal">매장</dt><dd class="col-8 mb-0">{{ r.store.name }}</dd>
+        </dl>
+      </div>
+    </div>
   </div>
-  {% else %}
-  <p class="text-muted">'{{ reservation.status }}' 상태는 더 처리할 수 없습니다.</p>
-  {% endif %}
+
+  <div class="col-lg-5">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h2 class="h6 text-muted mb-3">처리하기</h2>
+        {% if owner_actions %}
+        <div class="d-grid gap-2" data-actions>
+          {% for a in owner_actions %}
+          {% set cls, icon = action_style.get(a, ('btn-outline-primary', '')) %}
+          {% if a == 'confirm' %}
+          {# 확정: 바로 확정하거나, 펼쳐서 손님에게 한마디를 남기고 확정한다 #}
+          <form method="post" action="/owner/reservations/{{ r.id }}/confirm" class="d-grid gap-2" data-confirm-form>
+            <button class="btn {{ cls }} w-100 py-2">{{ icon }} {{ labels[a] }}</button>
+            <button class="btn btn-link btn-sm p-0" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#confirm-note" aria-expanded="false">+ 손님에게 한마디 남기기</button>
+            <div class="collapse" id="confirm-note">
+              <textarea class="form-control form-control-sm" name="reason" rows="2" maxlength="{{ max_note }}"
+                        placeholder="예: 요청하신 자리 준비해 둘게요. 조심히 오세요!"></textarea>
+              <p class="small text-muted mt-1 mb-0">{{ max_note }}자 이내. 손님 '내 예약 조회' 화면에 보이고, 확정 문자에 안내가 붙어요.</p>
+            </div>
+          </form>
+          {% elif a in ('cancel', 'no_show') %}
+          {# 취소·노쇼는 한 번 더 펼쳐서 사유를 고르고 처리한다 #}
+          <button class="btn {{ cls }} w-100 py-2" type="button" data-bs-toggle="collapse"
+                  data-bs-target="#form-{{ a }}" aria-expanded="false">{{ icon }} {{ labels[a] }}…</button>
+          <form method="post" action="/owner/reservations/{{ r.id }}/{{ a }}" class="collapse border rounded-3 p-3"
+                id="form-{{ a }}" data-reason-form="{{ a }}">
+            {% if a == 'cancel' %}
+            <label class="form-label small fw-semibold" for="reason-{{ a }}">취소 사유</label>
+            <select class="form-select form-select-sm mb-2" name="reason" id="reason-{{ a }}"
+                    onchange="this.form.reason_custom.classList.toggle('d-none', this.value !== '직접 입력')">
+              <option value="">사유 없이 취소</option>
+              {% for reason in cancel_reasons %}<option value="{{ reason }}">{{ reason }}</option>{% endfor %}
+              <option value="직접 입력">직접 입력</option>
+            </select>
+            <input class="form-control form-control-sm mb-2 d-none" name="reason_custom" maxlength="{{ max_reason }}"
+                   placeholder="{{ max_reason }}자 이내로 입력">
+            <p class="small text-muted mb-2">사유는 손님에게 가는 취소 문자에 함께 들어가요.</p>
+            <button class="btn btn-danger btn-sm w-100">취소하고 손님에게 알리기</button>
+            {% else %}
+            <label class="form-label small fw-semibold" for="reason-{{ a }}">메모 <span class="text-muted fw-normal">(선택)</span></label>
+            <input class="form-control form-control-sm mb-2" name="reason" id="reason-{{ a }}" maxlength="{{ max_reason }}"
+                   placeholder="예: 연락 없이 미방문">
+            <p class="small text-muted mb-2">메모는 이력에만 남고 손님에게는 문자가 가지 않아요.</p>
+            <button class="btn btn-outline-danger btn-sm w-100">노쇼로 처리</button>
+            {% endif %}
+          </form>
+          {% else %}
+          <form method="post" action="/owner/reservations/{{ r.id }}/{{ a }}">
+            <button class="btn {{ cls }} w-100 py-2">{{ icon }} {{ labels[a] }}</button>
+          </form>
+          {% endif %}
+          {% endfor %}
+        </div>
+        <p class="text-muted small mt-3 mb-0">확정·취소하면 손님에게 문자로 알려요.</p>
+        {% else %}
+        <p class="text-muted mb-0">'{{ r.status }}' 상태는 더 처리할 수 없습니다.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
 </div>
 
 <h2 class="h6">상태 변경 이력</h2>
-<table class="table table-sm bg-white">
-  <thead><tr><th>시각</th><th>이전</th><th>이후</th></tr></thead>
-  <tbody>
-  {% for h in reservation.histories %}
-  <tr><td>{{ h.changed_at.strftime('%Y-%m-%d %H:%M:%S') }}</td><td>{{ h.from_status }}</td><td>{{ h.to_status }}</td></tr>
+<ul class="list-group shadow-sm" data-history>
+  {% for h in r.histories %}
+  <li class="list-group-item d-flex align-items-center gap-3">
+    <span class="small text-muted text-nowrap">{{ h.changed_at.strftime('%m/%d %H:%M') }}</span>
+    <span>{{ h.from_status }} → <strong>{{ h.to_status }}</strong>
+      {% if h.memo %}<span class="text-muted small" data-memo>· {{ h.memo }}</span>{% endif %}</span>
+  </li>
   {% else %}
-  <tr><td colspan="3" class="text-muted">이력이 없습니다.</td></tr>
+  <li class="list-group-item text-muted">이력이 없습니다.</li>
   {% endfor %}
-  </tbody>
-</table>
+</ul>
 {% endblock %}

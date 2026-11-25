@@ -188,6 +188,8 @@ class GroqAIClient(HttpAIClient):
     """Groq Cloud API (OpenAI-compatible)."""
 
     provider_name = "Groq"
+    # 기본값(1.0)은 긴 글에서 중국어가 자주 섞여서 조금 낮춘다. (AI-assisted, Claude)
+    temperature = 0.6
 
     def endpoint(self) -> str:
         return "https://api.groq.com/openai/v1/chat/completions"
@@ -198,7 +200,7 @@ class GroqAIClient(HttpAIClient):
     def payload(self, prompt: str, system: str | None) -> dict[str, Any]:
         messages = [{"role": "system", "content": system}] if system else []
         messages.append({"role": "user", "content": prompt})
-        return {"model": self.model, "messages": messages}
+        return {"model": self.model, "messages": messages, "temperature": self.temperature}
 
     def parse(self, data: dict[str, Any]) -> str:
         return data["choices"][0]["message"]["content"]

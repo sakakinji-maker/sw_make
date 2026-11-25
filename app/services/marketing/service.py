@@ -10,6 +10,7 @@ from app.repositories.marketing_repository import (
     list_marketing_contents,
     save_marketing_content,
 )
+from app.services.foreign_text import foreign_chars, generate_korean
 from app.services.inquiry.fact_checker import FactChecker
 from app.services.marketing.strategies import get_strategy
 
@@ -29,6 +30,31 @@ MENU_PRICE_PATTERN = re.compile(
 NON_KOREAN_CJK_PATTERN = re.compile(r"[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]")
 
 
+def store_info(store: Store | None, menus: list[MenuItem] | None) -> str:
+    """AI에게 줄 매장 사실 정보. 이 안의 내용만 문구에 쓰게 한다."""
+    lines = []
+    if store is not None:
+        lines.append(f"- 매장 이름: {store.name}")
+        if store.address:
+            lines.append(f"- 위치: {store.address}")
+        if store.open_time and store.close_time:
+            hours = f"{store.open_time:%H:%M}~{store.close_time:%H:%M}"
+            lines.append(f"- 영업시간: {hours}")
+        if store.closed_days:
+            lines.append(f"- 정기휴무: {store.closed_days.replace(',', '·')}요일")
+    on_sale = [m for m in menus or [] if m.on_sale]
+    if on_sale:
+        lines.append("- 판매 메뉴: " + ", ".join(f"{m.name} {m.price:,}원" for m in on_sale))
+    return "\n".join(lines)
+
+
+FIX_PROMPT = (
+    "아래 글에 한국어가 아닌 글자({chars})가 섞여 있습니다.\n"
+    "그 글자들을 같은 뜻의 자연스러운 한국어로 바꾸고, 나머지 내용과 줄바꿈은 그대로 두어\n"
+    "글 전체를 다시 출력하세요. 설명 없이 고친 글만 출력하세요.\n\n{text}"
+)
+
+
 class MarketingService:
     def __init__(self, ai_client: AIClient) -> None:
         self.ai = ai_client
@@ -44,14 +70,17 @@ class MarketingService:
     ) -> ContentResult:
         strategy = get_strategy(channel)
 
+        prompt = strategy.build_prompt(target, keywords, extra_note, store_info(store, menus))
         try:
-            text = self.ai.generate(strategy.build_prompt(target, keywords, extra_note))
+            # 중국어·일본어 문자가 섞이면 자동으로 다시 생성한다 (최대 2번 더)
+            text = generate_korean(lambda: self.ai.generate(prompt))
         except AIClientError as e:
             return ContentResult(
                 text=None,
                 violations=[],
                 error=f"문구 생성 실패: {e}",
             )
+        text = self._fix_foreign(text)
 
         violations = strategy.check(text)
         if NON_KOREAN_CJK_PATTERN.search(text):
@@ -88,6 +117,20 @@ class MarketingService:
             text=text,
             violations=violations,
         )
+
+    def _fix_foreign(self, text: str) -> str:
+        """다시 생성해도 외국어가 남으면(긴 블로그 글에 잦음) 그 글자만 고쳐 달라고 요청한다."""
+        chars = foreign_chars(text)
+        if not chars:
+            return text
+        try:
+            fixed = self.ai.generate(FIX_PROMPT.format(chars=chars, text=text))
+        except AIClientError:
+            return text
+        # 고친 글이 더 나을 때만 바꾼다 (외국 문자가 줄었고, 길이가 크게 줄지 않음)
+        if len(foreign_chars(fixed)) < len(chars) and len(fixed) >= len(text) * 0.7:
+            return fixed
+        return text
 
     def save(
         self,

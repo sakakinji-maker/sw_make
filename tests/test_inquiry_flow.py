@@ -164,7 +164,7 @@ def test_customer_form_lists_stores(client):
 
 def test_customer_submit_success(client):
     page = client.post("/inquiries", data=valid_form(1))
-    assert page.status_code == 200 and "문의가 접수되었습니다" in page.text
+    assert page.status_code == 200 and "문의가 접수되었어요" in page.text
 
 
 def test_customer_submit_invalid_shows_errors_and_keeps_input(client):
@@ -196,7 +196,7 @@ def test_owner_draft_ai_failure_message(client):
     assert "직접 답변을 작성" in client.get(redirect.headers["location"]).text
 
 
-# ---------- 13주차: F-03-3 휴무일, F-03-4 발송 완료, F-03-5 직접 작성 ----------
+# ---------- 13주차: F-03-3 휴무일, F-03-4 발송, F-03-5 직접 작성 ----------
 # AI-assisted (Claude) — 정회성 검토 완료
 
 
@@ -255,8 +255,12 @@ def test_check_answer_flags_owner_mistake(session):
 def test_owner_submit_answer_marks_answered(client):
     redirect = client.post("/owner/inquiries/1/answer", data={"answer": "4,500원입니다."})
     assert redirect.status_code == 200  # TestClient가 303을 따라간다
-    assert "발송 완료로 저장했습니다" in redirect.text and "답변완료" in redirect.text
-    assert "답변 복사" in redirect.text
+    assert "답변을 발송했습니다." in redirect.text and "답변완료" in redirect.text
+    assert "답변 복사" in redirect.text and "수정 후 재발송" in redirect.text
+    same = client.post("/owner/inquiries/1/answer", data={"answer": "4,500원입니다."})
+    assert "바뀐 내용이 없어 다시 보내지 않았어요." in same.text
+    again = client.post("/owner/inquiries/1/answer", data={"answer": "아메리카노는 4,500원입니다."})
+    assert "수정한 답변을 다시 발송했습니다." in again.text
 
 
 def test_owner_submit_empty_answer_rejected(client):
@@ -279,7 +283,7 @@ def test_owner_ai_failure_then_write_directly(client):
     app.dependency_overrides[get_ai] = lambda: MockAIClient(fail=True)
     client.post("/owner/inquiries/2/draft")
     page = client.post("/owner/inquiries/2/answer", data={"answer": "직접 쓴 답변입니다."})
-    assert "발송 완료로 저장했습니다" in page.text and "직접 쓴 답변입니다." in page.text
+    assert "답변을 발송했습니다." in page.text and "직접 쓴 답변입니다." in page.text
 
 
 def test_owner_answered_shows_warning_for_wrong_final(client):
@@ -293,8 +297,8 @@ def test_owner_answered_shows_warning_for_wrong_final(client):
 Q01_PHONE = "010-0000-0101"
 
 
-def lookup(client, phone: str):
-    return client.post("/inquiries/lookup", data={"phone": phone})
+def lookup(client, phone: str, name: str = "김하늘"):
+    return client.post("/inquiries/lookup", data={"phone": phone, "name": name})
 
 
 def test_lookup_unanswered_shows_waiting(client):
@@ -329,12 +333,13 @@ def test_lookup_shows_only_own_inquiries(client):
 
 def test_lookup_new_inquiry_after_submit(client):
     client.post("/inquiries", data=valid_form(1, phone="010-5555-6666", content="단체석 있나요?"))
-    page = lookup(client, "010-5555-6666")
+    page = lookup(client, "010-5555-6666", "테스트")
     assert "단체석 있나요?" in page.text and "브루밍 카페" in page.text
 
 
 def test_lookup_no_result_and_invalid_phone(client):
-    assert "남긴 문의가 없습니다" in lookup(client, "010-1111-2222").text
+    assert "남긴 문의가 없어요" in lookup(client, "010-1111-2222").text
+    assert "남긴 문의가 없어요" in lookup(client, Q01_PHONE, "남이름").text  # 이름이 다르면 안 보임
     page = lookup(client, "abc")
     assert page.status_code == 400 and "연락처 형식이 올바르지 않습니다" in page.text
 
